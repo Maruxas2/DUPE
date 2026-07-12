@@ -265,7 +265,8 @@ local playerTabButton = makeTabButton("Player", 4)
 local playersTabButton = makeTabButton("Players", 5)
 local playerUtilsTabButton = makeTabButton("Player Utils", 6)
 local visualsTabButton = makeTabButton("Visuals", 7)
-local settingsTabButton = makeTabButton("Settings", 8)
+local gunTabButton = makeTabButton("Gun", 8)
+local settingsTabButton = makeTabButton("Settings", 9)
 
 -- Content pages (sit below the tab bar).
 local function makePage()
@@ -284,6 +285,7 @@ local playerPage = makePage()
 local playersPage = makePage()
 local playerUtilsPage = makePage()
 local visualsPage = makePage()
+local gunPage = makePage()
 local settingsPage = makePage()
 
 local ACTIVE_TAB = Color3.fromRGB(60, 60, 72)
@@ -299,6 +301,7 @@ local function selectTab(which)
     playersPage.Visible = which == "players"
     playerUtilsPage.Visible = which == "playerutils"
     visualsPage.Visible = which == "visuals"
+    gunPage.Visible = which == "gun"
     settingsPage.Visible = which == "settings"
     mainTabButton.BackgroundColor3 = which == "main" and ACTIVE_TAB or IDLE_TAB
     teleportTabButton.BackgroundColor3 = which == "teleports" and ACTIVE_TAB or IDLE_TAB
@@ -307,6 +310,7 @@ local function selectTab(which)
     playersTabButton.BackgroundColor3 = which == "players" and ACTIVE_TAB or IDLE_TAB
     playerUtilsTabButton.BackgroundColor3 = which == "playerutils" and ACTIVE_TAB or IDLE_TAB
     visualsTabButton.BackgroundColor3 = which == "visuals" and ACTIVE_TAB or IDLE_TAB
+    gunTabButton.BackgroundColor3 = which == "gun" and ACTIVE_TAB or IDLE_TAB
     settingsTabButton.BackgroundColor3 = which == "settings" and ACTIVE_TAB or IDLE_TAB
 end
 
@@ -330,6 +334,9 @@ playerUtilsTabButton.MouseButton1Click:Connect(function()
 end)
 visualsTabButton.MouseButton1Click:Connect(function()
     selectTab("visuals")
+end)
+gunTabButton.MouseButton1Click:Connect(function()
+    selectTab("gun")
 end)
 settingsTabButton.MouseButton1Click:Connect(function()
     selectTab("settings")
@@ -2080,6 +2087,231 @@ ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, plr)
         end
     end)
 end)
+
+end
+
+-- ==== Gun page: weapon modifications (valary Weapon Modifications) ====
+do
+local LocalPlayer = Players.LocalPlayer
+
+local gunFlags = {}
+local function gunOn(name)
+    return gunFlags[name] == true
+end
+
+local GUN_MODS = {
+    { "InfiniteAmmo", "Infinite Ammo" },
+    { "InfiniteClips", "Infinite Clips" },
+    { "InstantReload", "Instant Reload" },
+    { "InstantEquip", "Instant Equip" },
+    { "NoJam", "No Jam" },
+    { "InfiniteDamage", "Infinite Damage" },
+    { "FullAuto", "Full Auto" },
+    { "NoRecoil", "No Recoil" },
+    { "NoSpread", "No Spread" },
+    { "FastFireRate", "Fast Fire Rate" },
+}
+
+local gunTitle = Instance.new("TextLabel")
+gunTitle.Name = "GunTitle"
+gunTitle.BackgroundTransparency = 1
+gunTitle.Position = UDim2.new(0, 12, 0, 6)
+gunTitle.Size = UDim2.new(1, -24, 0, 20)
+gunTitle.Font = Enum.Font.Gotham
+gunTitle.TextSize = 13
+gunTitle.TextColor3 = Color3.fromRGB(200, 200, 210)
+gunTitle.TextXAlignment = Enum.TextXAlignment.Left
+gunTitle.Text = "Hold a gun, then toggle."
+gunTitle.Parent = gunPage
+
+local gunList = Instance.new("ScrollingFrame")
+gunList.Name = "GunList"
+gunList.Position = UDim2.new(0, 12, 0, 30)
+gunList.Size = UDim2.new(1, -24, 1, -36)
+gunList.BackgroundTransparency = 1
+gunList.BorderSizePixel = 0
+gunList.ScrollBarThickness = 4
+gunList.CanvasSize = UDim2.new(0, 0, 0, 0)
+gunList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+gunList.Parent = gunPage
+
+local gunLayout = Instance.new("UIListLayout")
+gunLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gunLayout.Padding = UDim.new(0, 4)
+gunLayout.Parent = gunList
+
+-- Cache each weapon's original module values so toggles can be reverted.
+local oldValues = {}
+
+local function getAllTools()
+    local result = {}
+    local player = LocalPlayer
+    local bp = player and player:FindFirstChildOfClass("Backpack")
+    local char = player and player.Character
+    if bp then
+        for _, v in ipairs(bp:GetChildren()) do
+            result[#result + 1] = v
+        end
+    end
+    if char then
+        for _, v in ipairs(char:GetChildren()) do
+            result[#result + 1] = v
+        end
+    end
+    return result
+end
+
+local function getModule(tool)
+    local m = tool:FindFirstChildOfClass("ModuleScript")
+    if m and m.Name == "Setting" then
+        local ok, tbl = pcall(require, m)
+        if ok and type(tbl) == "table" then
+            return tbl
+        end
+    end
+    return nil
+end
+
+local function cacheValues()
+    for _, tool in ipairs(getAllTools()) do
+        if tool:IsA("Tool") and not oldValues[tool.Name] then
+            local mod = getModule(tool)
+            if mod then
+                local snap = {}
+                for k, v in pairs(mod) do
+                    snap[k] = v
+                end
+                oldValues[tool.Name] = snap
+            end
+        end
+    end
+end
+
+local ammoTokens = {}
+
+local function keepAmmo(tool, slot)
+    ammoTokens[slot] = (ammoTokens[slot] or 0) + 1
+    local myToken = ammoTokens[slot]
+    local old = oldValues[tool.Name]
+    if not old then
+        return
+    end
+    task.spawn(function()
+        while ammoTokens[slot] == myToken do
+            task.wait(0.03)
+            local flag = slot == 1 and "InfiniteClips" or "InfiniteAmmo"
+            if not (gunOn(flag) and tool.Parent) then
+                break
+            end
+            local gs = tool:FindFirstChild("GunScript_Local")
+            if gs and typeof(getsenv) == "function" and typeof(debug) == "table" then
+                pcall(function()
+                    debug.setupvalue(getsenv(gs).Reload, slot, old.AmmoPerMag)
+                end)
+            end
+        end
+    end)
+end
+
+local function modWeapon(tool)
+    local mod = getModule(tool)
+    local old = oldValues[tool.Name]
+    if not mod or not old then
+        return
+    end
+    mod.FireRate = gunOn("FastFireRate") and (old.FireRate * 0.15) or old.FireRate
+    mod.ReloadTime = gunOn("InstantReload") and 0.01 or old.ReloadTime
+    mod.EquipTime = gunOn("InstantEquip") and 0.01 or old.EquipTime
+    mod.Recoil = gunOn("NoRecoil") and 0 or old.Recoil
+    mod.BaseDamage = gunOn("InfiniteDamage") and math.huge or old.BaseDamage
+    mod.Auto = gunOn("FullAuto") or old.Auto
+    mod.JamChance = gunOn("NoJam") and 0 or old.JamChance
+    if mod.SpreadX ~= nil then
+        mod.SpreadX = gunOn("NoSpread") and 0 or old.SpreadX
+    end
+    if mod.SpreadY ~= nil then
+        mod.SpreadY = gunOn("NoSpread") and 0 or old.SpreadY
+    end
+    if mod.Spread ~= nil then
+        mod.Spread = gunOn("NoSpread") and 0 or old.Spread
+    end
+    if mod.SpreadXY ~= nil then
+        mod.SpreadXY = gunOn("NoSpread") and 0 or old.SpreadXY
+    end
+    if mod.SpreadYX ~= nil then
+        mod.SpreadYX = gunOn("NoSpread") and 0 or old.SpreadYX
+    end
+    if gunOn("InfiniteClips") then
+        keepAmmo(tool, 1)
+    end
+    if gunOn("InfiniteAmmo") then
+        keepAmmo(tool, 3)
+    end
+end
+
+local function applyAll()
+    cacheValues()
+    for _, tool in ipairs(getAllTools()) do
+        if tool:IsA("Tool") then
+            pcall(modWeapon, tool)
+        end
+    end
+end
+
+local function makeGunToggle(key, label, order)
+    local btn = Instance.new("TextButton")
+    btn.Name = "Gun_" .. key
+    btn.Size = UDim2.new(1, -4, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = label .. ": OFF"
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.LayoutOrder = order
+    btn.Parent = gunList
+    roundCorner(btn, UDim.new(0, 6))
+
+    local function apply(v)
+        gunFlags[key] = v == true
+        if gunFlags[key] then
+            btn.Text = label .. ": ON"
+            btn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        else
+            btn.Text = label .. ": OFF"
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+        end
+        pcall(applyAll)
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        apply(not gunFlags[key])
+    end)
+
+    regFlag("gun:" .. key, function()
+        return gunFlags[key] == true
+    end, apply)
+end
+
+for i, m in ipairs(GUN_MODS) do
+    makeGunToggle(m[1], m[2], i)
+end
+
+-- Re-apply mods whenever a tool is equipped or added.
+local function hookChar(char)
+    char.ChildAdded:Connect(function(v)
+        if v:IsA("Tool") then
+            task.wait(0.1)
+            pcall(applyAll)
+        end
+    end)
+end
+if LocalPlayer.Character then
+    hookChar(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(hookChar)
 
 end
 
