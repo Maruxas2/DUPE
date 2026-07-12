@@ -95,7 +95,31 @@ main.Size = UDim2.fromOffset(300, 560)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
+main.ClipsDescendants = true
 main.Parent = screenGui
+
+-- Scale the whole phone down on small screens so it always fits.
+local uiScale = Instance.new("UIScale")
+uiScale.Parent = main
+local function fitPhone()
+    local cam = workspace.CurrentCamera
+    if not cam then
+        return
+    end
+    local vp = cam.ViewportSize
+    local s = math.min(vp.X / 340, vp.Y / 620, 1)
+    if s < 0.4 then
+        s = 0.4
+    end
+    uiScale.Scale = s
+end
+fitPhone()
+task.spawn(function()
+    local cam = workspace.CurrentCamera
+    if cam then
+        cam:GetPropertyChangedSignal("ViewportSize"):Connect(fitPhone)
+    end
+end)
 
 -- Phone body: big rounded corners + dark bezel stroke.
 roundCorner(main, UDim.new(0, 34))
@@ -330,6 +354,13 @@ local THEMES = {
     { name = "Slate", bg = Color3.fromRGB(24, 26, 30), bar = Color3.fromRGB(40, 44, 52), tabIdle = Color3.fromRGB(32, 36, 42), tabActive = Color3.fromRGB(90, 100, 120), accent = Color3.fromRGB(200, 210, 225) },
     { name = "Lava", bg = Color3.fromRGB(26, 12, 8), bar = Color3.fromRGB(58, 22, 12), tabIdle = Color3.fromRGB(44, 18, 10), tabActive = Color3.fromRGB(230, 90, 20), accent = Color3.fromRGB(255, 160, 60) },
     { name = "Aqua Mint", bg = Color3.fromRGB(14, 30, 28), bar = Color3.fromRGB(20, 54, 50), tabIdle = Color3.fromRGB(18, 42, 40), tabActive = Color3.fromRGB(40, 190, 160), accent = Color3.fromRGB(130, 255, 220) },
+    { name = "Galaxy", bg = Color3.fromRGB(16, 14, 30), bar = Color3.fromRGB(34, 26, 66), tabIdle = Color3.fromRGB(26, 20, 48), tabActive = Color3.fromRGB(120, 90, 230), accent = Color3.fromRGB(180, 150, 255) },
+    { name = "Cotton Candy", bg = Color3.fromRGB(38, 26, 40), bar = Color3.fromRGB(70, 44, 78), tabIdle = Color3.fromRGB(54, 34, 60), tabActive = Color3.fromRGB(240, 130, 200), accent = Color3.fromRGB(160, 220, 255) },
+    { name = "Forest", bg = Color3.fromRGB(16, 24, 18), bar = Color3.fromRGB(26, 44, 32), tabIdle = Color3.fromRGB(22, 36, 26), tabActive = Color3.fromRGB(70, 130, 70), accent = Color3.fromRGB(150, 210, 140) },
+    { name = "Rose Gold", bg = Color3.fromRGB(34, 24, 24), bar = Color3.fromRGB(66, 44, 44), tabIdle = Color3.fromRGB(50, 34, 34), tabActive = Color3.fromRGB(220, 130, 120), accent = Color3.fromRGB(255, 190, 170) },
+    { name = "Toxic", bg = Color3.fromRGB(18, 22, 10), bar = Color3.fromRGB(34, 44, 16), tabIdle = Color3.fromRGB(26, 34, 12), tabActive = Color3.fromRGB(150, 210, 30), accent = Color3.fromRGB(200, 255, 90) },
+    { name = "Deep Sea", bg = Color3.fromRGB(8, 18, 26), bar = Color3.fromRGB(12, 34, 48), tabIdle = Color3.fromRGB(10, 26, 38), tabActive = Color3.fromRGB(20, 120, 160), accent = Color3.fromRGB(90, 200, 230) },
+    { name = "Bumblebee", bg = Color3.fromRGB(24, 22, 10), bar = Color3.fromRGB(48, 44, 14), tabIdle = Color3.fromRGB(36, 34, 12), tabActive = Color3.fromRGB(230, 190, 20), accent = Color3.fromRGB(255, 225, 80) },
 }
 
 local currentTheme = "Midnight"
