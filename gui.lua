@@ -1188,8 +1188,16 @@ local function purchaseItem(name)
     teleportTo(CFrame.new(oldCF.Position, oldCF.Position + lookVector))
 end
 
+-- Exotic shop products bought straight through the remote (no walking).
+local EXOTIC_ITEMS = { "FijiWater", "FreshWater", "Ice-Fruit Bag", "Ice-Fruit Cupz" }
+local function purchaseExotic(name)
+    pcall(function()
+        ReplicatedStorage:WaitForChild("ExoticShopRemote"):InvokeServer(name)
+    end)
+end
+
 local buyBusy = false
-local function makeBuyButton(name, order)
+local function makeBuyButton(label, order, buyFn)
     local btn = Instance.new("TextButton")
     btn.Name = "Buy_" .. order
     btn.Size = UDim2.new(1, -4, 0, 30)
@@ -1199,7 +1207,7 @@ local function makeBuyButton(name, order)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 13
     btn.TextColor3 = Color3.fromRGB(230, 230, 235)
-    btn.Text = name
+    btn.Text = label
     btn.TextTruncate = Enum.TextTruncate.AtEnd
     btn.LayoutOrder = order
     btn.Parent = autoBuyList
@@ -1213,11 +1221,11 @@ local function makeBuyButton(name, order)
             return
         end
         buyBusy = true
-        btn.Text = name .. " ..."
+        btn.Text = label .. " ..."
         task.spawn(function()
-            pcall(purchaseItem, name)
+            pcall(buyFn)
             buyBusy = false
-            btn.Text = name
+            btn.Text = label
         end)
     end)
 end
@@ -1228,26 +1236,37 @@ local function rebuildAutoBuy()
             c:Destroy()
         end
     end
+
+    local order = 0
+
+    -- Exotic shop remote items first.
+    for _, name in ipairs(EXOTIC_ITEMS) do
+        order = order + 1
+        makeBuyButton(name .. " (shop)", order, function()
+            purchaseExotic(name)
+        end)
+    end
+
+    -- Walk-up shop items from workspace.GUNS.
     local guns = workspace:FindFirstChild("GUNS")
-    if not guns then
-        autoBuyTitle.Text = "No shop found (workspace.GUNS). Try Refresh."
-        return
-    end
     local names = {}
-    for _, v in ipairs(guns:GetChildren()) do
-        if v:FindFirstChildWhichIsA("ProximityPrompt", true) then
-            table.insert(names, v.Name)
+    if guns then
+        for _, v in ipairs(guns:GetChildren()) do
+            if v:FindFirstChildWhichIsA("ProximityPrompt", true) then
+                table.insert(names, v.Name)
+            end
         end
+        table.sort(names)
     end
-    table.sort(names)
-    for i, n in ipairs(names) do
-        makeBuyButton(n, i)
+    for _, n in ipairs(names) do
+        order = order + 1
+        local itemName = n
+        makeBuyButton(itemName, order, function()
+            purchaseItem(itemName)
+        end)
     end
-    if #names == 0 then
-        autoBuyTitle.Text = "No buyable items found. Try Refresh."
-    else
-        autoBuyTitle.Text = "Click an item to buy it."
-    end
+
+    autoBuyTitle.Text = "Click an item to buy it."
 end
 
 refreshBtn.MouseButton1Click:Connect(rebuildAutoBuy)
