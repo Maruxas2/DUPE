@@ -2299,6 +2299,91 @@ for i, m in ipairs(GUN_MODS) do
     makeGunToggle(m[1], m[2], i)
 end
 
+-- ---- Spray Paint Bullet: firing your gun sprays a colored paint splat ----
+local sprayEnabled = false
+local sprayBtn = Instance.new("TextButton")
+sprayBtn.Name = "Gun_SprayPaint"
+sprayBtn.Size = UDim2.new(1, -4, 0, 30)
+sprayBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+sprayBtn.BorderSizePixel = 0
+sprayBtn.AutoButtonColor = true
+sprayBtn.Font = Enum.Font.Gotham
+sprayBtn.TextSize = 13
+sprayBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+sprayBtn.Text = "Spray Paint Bullet: OFF"
+sprayBtn.TextTruncate = Enum.TextTruncate.AtEnd
+sprayBtn.LayoutOrder = #GUN_MODS + 1
+sprayBtn.Parent = gunList
+roundCorner(sprayBtn, UDim.new(0, 6))
+
+local function setSpray(v)
+    sprayEnabled = v == true
+    if sprayEnabled then
+        sprayBtn.Text = "Spray Paint Bullet: ON"
+        sprayBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        sprayBtn.Text = "Spray Paint Bullet: OFF"
+        sprayBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end
+
+sprayBtn.MouseButton1Click:Connect(function()
+    setSpray(not sprayEnabled)
+end)
+
+regFlag("gun:SprayPaint", function()
+    return sprayEnabled
+end, setSpray)
+
+local function spawnPaint(pos, normal)
+    local splat = Instance.new("Part")
+    splat.Anchored = true
+    splat.CanCollide = false
+    splat.CanQuery = false
+    splat.Material = Enum.Material.SmoothPlastic
+    splat.Color = Color3.fromHSV(math.random(), 1, 1)
+    splat.Size = Vector3.new(math.random(15, 35) / 10, 0.05, math.random(15, 35) / 10)
+    splat.CFrame = CFrame.new(pos, pos + normal) * CFrame.Angles(math.rad(90), 0, 0)
+    splat.Shape = Enum.PartType.Cylinder
+    splat.Parent = workspace
+    task.delay(8, function()
+        splat:Destroy()
+    end)
+end
+
+local function doSpray()
+    if not sprayEnabled then
+        return
+    end
+    local char = LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    if not tool then
+        return
+    end
+    local cam = workspace.CurrentCamera
+    if not cam then
+        return
+    end
+    local mouse = UserInputService:GetMouseLocation()
+    local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { char }
+    local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, params)
+    if result then
+        spawnPaint(result.Position, result.Normal)
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not sprayEnabled then
+        return
+    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        doSpray()
+    end
+end)
+
 -- Re-apply mods whenever a tool is equipped or added.
 local function hookChar(char)
     char.ChildAdded:Connect(function(v)
