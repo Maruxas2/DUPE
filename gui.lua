@@ -1279,6 +1279,7 @@ end, function(v)
 end)
 
 -- ==== Construction Farm: valary's FarmConstructionJob ====
+do
 local function getPlaceToPlaceWood()
     local stuff = workspace:FindFirstChild("ConstructionStuff")
     if not stuff then
@@ -1545,7 +1546,10 @@ cleanMoneyBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
+end
+
 -- ==== Auto Buy page: purchase items from workspace.GUNS (valary) ====
+do
 local autoBuyTitle = Instance.new("TextLabel")
 autoBuyTitle.Name = "AutoBuyTitle"
 autoBuyTitle.BackgroundTransparency = 1
@@ -1730,7 +1734,10 @@ end
 refreshBtn.MouseButton1Click:Connect(rebuildAutoBuy)
 rebuildAutoBuy()
 
+end
+
 -- ==== Player page: LocalPlayer modifications (valary PlayerModifications) ====
+do
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local LocalPlayer = Players.LocalPlayer
 
@@ -2018,6 +2025,8 @@ ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, plr)
         end
     end)
 end)
+
+end
 
 -- ==== Players page: pick an in-game player ====
 local Camera = workspace.CurrentCamera
