@@ -7,13 +7,14 @@ end
 --[[
     DUPE - Draggable tabbed menu GUI
     Tab "Main":  toggle runs the bundled dupe payload (main.lua) every
-                 RUN_INTERVAL seconds; a "Max Money" button fires a one-shot
-                 burst of runs; a dropdown picks which inventory Tool to act on.
-    Tab "Teleports": buttons that teleport the character to preset locations.
+                 RUN_INTERVAL seconds; a "Max Money" button runs it once per
+                 click; an "Auto Drop" toggle drops a copy when 2+ of the
+                 selected item are held; a dropdown picks which Tool to act on.
+    Tab "Teleports": buttons that teleport the character to preset locations,
+                 plus an "Anti-TP Bypass" toggle that holds your position.
 ]]
 
 local RUN_INTERVAL = 8 -- seconds between executions while toggled ON
-local MAX_MONEY_BURST = 25 -- number of rapid runs the Max Money button fires
 
 -- Ordered list of teleport destinations {label, CFrame}.
 local TELEPORTS = {
@@ -40,6 +41,7 @@ local TELEPORTS = {
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local function getParent()
     -- Prefer exploit-safe containers, fall back to PlayerGui / CoreGui.
@@ -178,7 +180,7 @@ local toggle = Instance.new("TextButton")
 toggle.Name = "Toggle"
 toggle.AnchorPoint = Vector2.new(0.5, 1)
 toggle.Position = UDim2.new(0.5, 0, 1, -12)
-toggle.Size = UDim2.new(1, -24, 0, 44)
+toggle.Size = UDim2.new(1, -24, 0, 40)
 toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 toggle.BorderSizePixel = 0
 toggle.AutoButtonColor = true
@@ -195,8 +197,8 @@ toggleCorner.Parent = toggle
 local maxMoney = Instance.new("TextButton")
 maxMoney.Name = "MaxMoney"
 maxMoney.AnchorPoint = Vector2.new(0.5, 1)
-maxMoney.Position = UDim2.new(0.5, 0, 1, -64)
-maxMoney.Size = UDim2.new(1, -24, 0, 40)
+maxMoney.Position = UDim2.new(0.5, 0, 1, -58)
+maxMoney.Size = UDim2.new(1, -24, 0, 38)
 maxMoney.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
 maxMoney.BorderSizePixel = 0
 maxMoney.AutoButtonColor = true
@@ -209,6 +211,24 @@ maxMoney.Parent = mainPage
 local maxMoneyCorner = Instance.new("UICorner")
 maxMoneyCorner.CornerRadius = UDim.new(0, 6)
 maxMoneyCorner.Parent = maxMoney
+
+local autoDropBtn = Instance.new("TextButton")
+autoDropBtn.Name = "AutoDrop"
+autoDropBtn.AnchorPoint = Vector2.new(0.5, 1)
+autoDropBtn.Position = UDim2.new(0.5, 0, 1, -102)
+autoDropBtn.Size = UDim2.new(1, -24, 0, 38)
+autoDropBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+autoDropBtn.BorderSizePixel = 0
+autoDropBtn.AutoButtonColor = true
+autoDropBtn.Font = Enum.Font.GothamBold
+autoDropBtn.TextSize = 14
+autoDropBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+autoDropBtn.Text = "Auto Drop: OFF"
+autoDropBtn.Parent = mainPage
+
+local autoDropCorner = Instance.new("UICorner")
+autoDropCorner.CornerRadius = UDim.new(0, 6)
+autoDropCorner.Parent = autoDropBtn
 
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
@@ -252,10 +272,32 @@ listLayout.Padding = UDim.new(0, 2)
 listLayout.Parent = listFrame
 
 -- ==== Teleports page ====
+-- Anti-teleport bypass: hold the player at the last teleport spot so the game
+-- can't drag you back.
+local antiTeleport = false
+local lastTeleportCF = nil
+
+local antiTpBtn = Instance.new("TextButton")
+antiTpBtn.Name = "AntiTeleport"
+antiTpBtn.Position = UDim2.new(0, 12, 0, 6)
+antiTpBtn.Size = UDim2.new(1, -24, 0, 32)
+antiTpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+antiTpBtn.BorderSizePixel = 0
+antiTpBtn.AutoButtonColor = true
+antiTpBtn.Font = Enum.Font.GothamBold
+antiTpBtn.TextSize = 14
+antiTpBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+antiTpBtn.Text = "Anti-TP Bypass: OFF"
+antiTpBtn.Parent = teleportPage
+
+local antiTpCorner = Instance.new("UICorner")
+antiTpCorner.CornerRadius = UDim.new(0, 6)
+antiTpCorner.Parent = antiTpBtn
+
 local teleportList = Instance.new("ScrollingFrame")
 teleportList.Name = "TeleportList"
-teleportList.Position = UDim2.new(0, 12, 0, 6)
-teleportList.Size = UDim2.new(1, -24, 1, -12)
+teleportList.Position = UDim2.new(0, 12, 0, 46)
+teleportList.Size = UDim2.new(1, -24, 1, -52)
 teleportList.BackgroundTransparency = 1
 teleportList.BorderSizePixel = 0
 teleportList.ScrollBarThickness = 4
@@ -275,9 +317,44 @@ local function teleportTo(cframe)
     end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if hrp then
+        lastTeleportCF = cframe
         hrp.CFrame = cframe
     end
 end
+
+-- While the bypass is on, re-assert the last teleport position if the game
+-- moves us away from it.
+RunService.Heartbeat:Connect(function()
+    if not antiTeleport or not lastTeleportCF then
+        return
+    end
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp and (hrp.Position - lastTeleportCF.Position).Magnitude > 8 then
+        hrp.CFrame = lastTeleportCF
+    end
+end)
+
+antiTpBtn.MouseButton1Click:Connect(function()
+    antiTeleport = not antiTeleport
+    if antiTeleport then
+        antiTpBtn.Text = "Anti-TP Bypass: ON"
+        antiTpBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        -- Lock to current position if we haven't teleported yet.
+        if not lastTeleportCF then
+            local player = Players.LocalPlayer
+            local char = player and player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                lastTeleportCF = hrp.CFrame
+            end
+        end
+    else
+        antiTpBtn.Text = "Anti-TP Bypass: OFF"
+        antiTpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
 
 for i, entry in ipairs(TELEPORTS) do
     local label, cframe = entry[1], entry[2]
@@ -392,6 +469,28 @@ local function findTool(name)
         end
     end
     return nil
+end
+
+local function toolsNamed(name)
+    local matches = {}
+    for _, t in ipairs(getInventoryTools()) do
+        if t.Name == name then
+            table.insert(matches, t)
+        end
+    end
+    return matches
+end
+
+-- Drop one extra copy of `name` (into the world) when 2+ are held.
+local function dropExtra(name)
+    local matches = toolsNamed(name)
+    if #matches < 2 then
+        return
+    end
+    local tool = matches[#matches]
+    pcall(function()
+        tool.Parent = workspace
+    end)
 end
 
 -- Equip the selected tool (if in the backpack) so payloads that dupe the
@@ -514,22 +613,34 @@ toggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- One-shot burst: fire the dupe payload MAX_MONEY_BURST times to rack up money.
-local maxMoneyBusy = false
+-- Money button: run the dupe payload once per click.
 maxMoney.MouseButton1Click:Connect(function()
-    if maxMoneyBusy then
-        return
+    safeRun()
+end)
+
+-- Auto Drop: while ON, drop one copy whenever 2+ of the selected item are held.
+local autoDrop = false
+local autoDropToken = 0
+autoDropBtn.MouseButton1Click:Connect(function()
+    autoDrop = not autoDrop
+    if autoDrop then
+        autoDropBtn.Text = "Auto Drop: ON"
+        autoDropBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        autoDropToken = autoDropToken + 1
+        local myToken = autoDropToken
+        task.spawn(function()
+            while autoDrop and myToken == autoDropToken do
+                if selectedItem then
+                    dropExtra(selectedItem)
+                end
+                task.wait(1)
+            end
+        end)
+    else
+        autoDropBtn.Text = "Auto Drop: OFF"
+        autoDropBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        autoDropToken = autoDropToken + 1 -- invalidate any running loop
     end
-    maxMoneyBusy = true
-    maxMoney.Text = "Max Money..."
-    task.spawn(function()
-        for _ = 1, MAX_MONEY_BURST do
-            safeRun()
-            task.wait()
-        end
-        maxMoney.Text = "Max Money"
-        maxMoneyBusy = false
-    end)
 end)
 
 selectTab("main")
