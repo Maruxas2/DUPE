@@ -75,7 +75,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(280, 412)
+main.Size = UDim2.fromOffset(280, 460)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -250,6 +250,24 @@ antiKickBtn.Parent = mainPage
 local antiKickCorner = Instance.new("UICorner")
 antiKickCorner.CornerRadius = UDim.new(0, 6)
 antiKickCorner.Parent = antiKickBtn
+
+local constructionBtn = Instance.new("TextButton")
+constructionBtn.Name = "ConstructionFarm"
+constructionBtn.AnchorPoint = Vector2.new(0.5, 1)
+constructionBtn.Position = UDim2.new(0.5, 0, 1, -204)
+constructionBtn.Size = UDim2.new(1, -24, 0, 40)
+constructionBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+constructionBtn.BorderSizePixel = 0
+constructionBtn.AutoButtonColor = true
+constructionBtn.Font = Enum.Font.GothamBold
+constructionBtn.TextSize = 14
+constructionBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+constructionBtn.Text = "Construction Farm: OFF"
+constructionBtn.Parent = mainPage
+
+local constructionCorner = Instance.new("UICorner")
+constructionCorner.CornerRadius = UDim.new(0, 6)
+constructionCorner.Parent = constructionBtn
 
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
@@ -963,6 +981,100 @@ antiKickBtn.MouseButton1Click:Connect(function()
         antiKick = false
         antiKickBtn.Text = "Anti Kick: OFF"
         antiKickBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
+
+-- ==== Construction Farm: valary's FarmConstructionJob ====
+local function getPlaceToPlaceWood()
+    local stuff = workspace:FindFirstChild("ConstructionStuff")
+    if not stuff then
+        return nil
+    end
+    for _, v in ipairs(stuff:GetChildren()) do
+        if v.Name:find("Wall") and v:IsA("BasePart") and v:FindFirstChild("Prompt") then
+            if v.Prompt.Enabled then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+-- One pass of the construction job: start the job, grab plywood, place it.
+local function constructionFarmStep()
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    if not char then
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum or hum.Health == 0 then
+        return
+    end
+    local backpack = player:FindFirstChildOfClass("Backpack")
+    local stuff = workspace:FindFirstChild("ConstructionStuff")
+    if not stuff then
+        return
+    end
+
+    if not player:GetAttribute("WorkingJob") then
+        teleportTo(CFrame.new(-1729, 371, -1171))
+        task.wait(0.4)
+        fireProx(stuff["Start Job"].Prompt)
+        repeat
+            task.wait()
+        until player:GetAttribute("WorkingJob")
+    end
+
+    if not (backpack and backpack:FindFirstChild("PlyWood")) and not char:FindFirstChild("PlyWood") then
+        teleportTo(CFrame.new(-1728, 371, -1178))
+        repeat
+            task.wait()
+            fireProx(stuff["Grab Wood"].Prompt)
+        until (backpack and backpack:FindFirstChild("PlyWood")) or char:FindFirstChild("PlyWood")
+    end
+
+    repeat
+        task.wait()
+    until (backpack and backpack:FindFirstChild("PlyWood")) or char:FindFirstChild("PlyWood")
+
+    local plywood = backpack and backpack:FindFirstChild("PlyWood")
+    if plywood then
+        hum:EquipTool(plywood)
+    end
+
+    local place = getPlaceToPlaceWood()
+    if not place then
+        return
+    end
+
+    teleportTo(place.CFrame)
+    repeat
+        task.wait()
+        fireProx(place.Prompt)
+    until not char:FindFirstChild("PlyWood") or not place.Prompt.Enabled
+end
+
+local constructionFarm = false
+local constructionToken = 0
+constructionBtn.MouseButton1Click:Connect(function()
+    constructionFarm = not constructionFarm
+    if constructionFarm then
+        constructionBtn.Text = "Construction Farm: ON"
+        constructionBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        constructionToken = constructionToken + 1
+        local myToken = constructionToken
+        task.spawn(function()
+            while constructionFarm and myToken == constructionToken do
+                pcall(constructionFarmStep)
+                task.wait()
+            end
+        end)
+    else
+        constructionBtn.Text = "Construction Farm: OFF"
+        constructionBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        constructionToken = constructionToken + 1 -- invalidate any running loop
     end
 end)
 
