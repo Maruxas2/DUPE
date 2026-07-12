@@ -75,7 +75,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(280, 460)
+main.Size = UDim2.fromOffset(280, 500)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -304,6 +304,24 @@ constructionBtn.Parent = mainPage
 local constructionCorner = Instance.new("UICorner")
 constructionCorner.CornerRadius = UDim.new(0, 6)
 constructionCorner.Parent = constructionBtn
+
+local studioBtn = Instance.new("TextButton")
+studioBtn.Name = "StudioFarm"
+studioBtn.AnchorPoint = Vector2.new(0.5, 1)
+studioBtn.Position = UDim2.new(0.5, 0, 1, -252)
+studioBtn.Size = UDim2.new(1, -24, 0, 40)
+studioBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+studioBtn.BorderSizePixel = 0
+studioBtn.AutoButtonColor = true
+studioBtn.Font = Enum.Font.GothamBold
+studioBtn.TextSize = 14
+studioBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+studioBtn.Text = "Studio Farm: OFF"
+studioBtn.Parent = mainPage
+
+local studioCorner = Instance.new("UICorner")
+studioCorner.CornerRadius = UDim.new(0, 6)
+studioCorner.Parent = studioBtn
 
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
@@ -1132,6 +1150,56 @@ constructionBtn.MouseButton1Click:Connect(function()
         constructionBtn.Text = "Construction Farm: OFF"
         constructionBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         constructionToken = constructionToken + 1 -- invalidate any running loop
+    end
+end)
+
+-- ==== Studio Farm: valary's FarmStudio ====
+local function studioFarmStep()
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum or hum.Health == 0 then
+        return
+    end
+    local studioPay = workspace:FindFirstChild("StudioPay")
+    local money = studioPay and studioPay:FindFirstChild("Money")
+    if not money then
+        return
+    end
+    for _, name in ipairs({ "StudioPay1", "StudioPay2", "StudioPay3" }) do
+        local pad = money:FindFirstChild(name)
+        local prompt = pad and pad:FindFirstChildWhichIsA("ProximityPrompt", true)
+        if prompt and prompt.Enabled and prompt.Parent then
+            teleportTo(prompt.Parent.CFrame)
+            task.wait(0.4)
+            fireProx(prompt)
+            task.wait(0.1)
+        end
+    end
+end
+
+local studioFarm = false
+local studioToken = 0
+studioBtn.MouseButton1Click:Connect(function()
+    studioFarm = not studioFarm
+    if studioFarm then
+        studioBtn.Text = "Studio Farm: ON"
+        studioBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        studioToken = studioToken + 1
+        local myToken = studioToken
+        task.spawn(function()
+            while studioFarm and myToken == studioToken do
+                pcall(studioFarmStep)
+                task.wait()
+            end
+        end)
+    else
+        studioBtn.Text = "Studio Farm: OFF"
+        studioBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        studioToken = studioToken + 1 -- invalidate any running loop
     end
 end)
 
