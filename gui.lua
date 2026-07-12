@@ -6,12 +6,14 @@ end
 
 --[[
     DUPE - Draggable menu GUI
-    A draggable Roblox menu with a single toggle button. When the toggle is ON,
-    the bundled dupe payload (main.lua) is executed immediately and then every
-    15 seconds until the toggle is switched OFF.
+    A draggable Roblox menu. When the toggle is ON, the bundled dupe payload
+    (main.lua) is executed immediately and then every RUN_INTERVAL seconds until
+    it is switched OFF. A "Max Money" button fires a one-shot burst of runs, and
+    a dropdown selects which inventory Tool to act on.
 ]]
 
-local RUN_INTERVAL = 15 -- seconds between executions while toggled ON
+local RUN_INTERVAL = 8 -- seconds between executions while toggled ON
+local MAX_MONEY_BURST = 25 -- number of rapid runs the Max Money button fires
 
 -- The dupe payload is bundled above in runDupe() (from main.lua).
 
@@ -47,7 +49,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(260, 240)
+main.Size = UDim2.fromOffset(260, 300)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -104,6 +106,24 @@ toggle.Parent = main
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggle
+
+local maxMoney = Instance.new("TextButton")
+maxMoney.Name = "MaxMoney"
+maxMoney.AnchorPoint = Vector2.new(0.5, 1)
+maxMoney.Position = UDim2.new(0.5, 0, 1, -64)
+maxMoney.Size = UDim2.new(1, -24, 0, 40)
+maxMoney.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+maxMoney.BorderSizePixel = 0
+maxMoney.AutoButtonColor = true
+maxMoney.Font = Enum.Font.GothamBold
+maxMoney.TextSize = 15
+maxMoney.TextColor3 = Color3.fromRGB(240, 245, 240)
+maxMoney.Text = "Max Money"
+maxMoney.Parent = main
+
+local maxMoneyCorner = Instance.new("UICorner")
+maxMoneyCorner.CornerRadius = UDim.new(0, 6)
+maxMoneyCorner.Parent = maxMoney
 
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
@@ -353,6 +373,24 @@ toggle.MouseButton1Click:Connect(function()
     else
         loopToken = loopToken + 1 -- invalidate any running loop
     end
+end)
+
+-- One-shot burst: fire the dupe payload MAX_MONEY_BURST times to rack up money.
+local maxMoneyBusy = false
+maxMoney.MouseButton1Click:Connect(function()
+    if maxMoneyBusy then
+        return
+    end
+    maxMoneyBusy = true
+    maxMoney.Text = "Max Money..."
+    task.spawn(function()
+        for _ = 1, MAX_MONEY_BURST do
+            safeRun()
+            task.wait()
+        end
+        maxMoney.Text = "Max Money"
+        maxMoneyBusy = false
+    end)
 end)
 
 print("[DUPE] menu loaded. Toggle the button to run every " .. RUN_INTERVAL .. "s.")
