@@ -75,7 +75,7 @@ local function getParent()
 end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "VelocityHub"
+screenGui.Name = "yallareass"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.IgnoreGuiInset = true
@@ -148,7 +148,7 @@ battLabel.Font = Enum.Font.GothamBold
 battLabel.TextSize = 13
 battLabel.TextColor3 = Color3.fromRGB(235, 235, 240)
 battLabel.TextXAlignment = Enum.TextXAlignment.Right
-battLabel.Text = "100% \u{2588}"
+battLabel.Text = "100%"
 battLabel.Parent = statusStrip
 
 local notch = Instance.new("Frame")
@@ -198,7 +198,7 @@ titleBar.Position = UDim2.new(0, 0, 0, 28)
 titleBar.Size = UDim2.new(1, 0, 0, 34)
 titleBar.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
 titleBar.BorderSizePixel = 0
-titleBar.Text = "Velocity Hub"
+titleBar.Text = "yall are ass.gg"
 titleBar.Font = Enum.Font.GothamBold
 titleBar.TextSize = 16
 titleBar.TextColor3 = Color3.fromRGB(235, 235, 240)
@@ -3199,4 +3199,4 @@ refreshConfigList()
 end
 
 selectTab("main")
-print("[Velocity Hub] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
+print("[yall are ass.gg] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
