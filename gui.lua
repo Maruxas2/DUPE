@@ -42,6 +42,9 @@ local TELEPORTS = {
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local TWEEN_SPEED = 120 -- studs/sec the tween-teleport glides at (tune vs anticheat)
 
 local function getParent()
     -- Prefer exploit-safe containers, fall back to PlayerGui / CoreGui.
@@ -309,6 +312,11 @@ teleportLayout.SortOrder = Enum.SortOrder.LayoutOrder
 teleportLayout.Padding = UDim.new(0, 4)
 teleportLayout.Parent = teleportList
 
+local activeTween = nil
+
+-- Glide the root part to the destination with TweenService instead of an
+-- instant CFrame set. The gradual move avoids anticheat teleport detection,
+-- and unanchoring afterward lets you walk normally without being pulled back.
 local function teleportTo(cframe)
     local player = Players.LocalPlayer
     local char = player and player.Character
@@ -316,10 +324,35 @@ local function teleportTo(cframe)
         return
     end
     local hrp = char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        lastTeleportCF = cframe
-        hrp.CFrame = cframe
+    if not hrp then
+        return
     end
+    lastTeleportCF = cframe
+
+    if activeTween then
+        activeTween:Cancel()
+    end
+
+    local dist = (hrp.Position - cframe.Position).Magnitude
+    local duration = math.clamp(dist / TWEEN_SPEED, 0.15, 10)
+
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.Anchored = true
+    local tween = TweenService:Create(
+        hrp,
+        TweenInfo.new(duration, Enum.EasingStyle.Linear),
+        { CFrame = cframe }
+    )
+    activeTween = tween
+    tween.Completed:Connect(function()
+        if hrp and hrp.Parent then
+            hrp.Anchored = false
+        end
+        if activeTween == tween then
+            activeTween = nil
+        end
+    end)
+    tween:Play()
 end
 
 -- While the bypass is on, hard-lock the player to the last teleport position
