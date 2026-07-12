@@ -75,7 +75,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(280, 366)
+main.Size = UDim2.fromOffset(280, 412)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -200,7 +200,7 @@ toggleCorner.Parent = toggle
 local maxMoney = Instance.new("TextButton")
 maxMoney.Name = "MaxMoney"
 maxMoney.AnchorPoint = Vector2.new(0.5, 1)
-maxMoney.Position = UDim2.new(0.5, 0, 1, -62)
+maxMoney.Position = UDim2.new(0.5, 0, 1, -60)
 maxMoney.Size = UDim2.new(1, -24, 0, 40)
 maxMoney.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
 maxMoney.BorderSizePixel = 0
@@ -208,7 +208,7 @@ maxMoney.AutoButtonColor = true
 maxMoney.Font = Enum.Font.GothamBold
 maxMoney.TextSize = 15
 maxMoney.TextColor3 = Color3.fromRGB(240, 245, 240)
-maxMoney.Text = "Max Money"
+maxMoney.Text = "Max Money: OFF"
 maxMoney.Parent = mainPage
 
 local maxMoneyCorner = Instance.new("UICorner")
@@ -218,7 +218,7 @@ maxMoneyCorner.Parent = maxMoney
 local autoDropBtn = Instance.new("TextButton")
 autoDropBtn.Name = "AutoDrop"
 autoDropBtn.AnchorPoint = Vector2.new(0.5, 1)
-autoDropBtn.Position = UDim2.new(0.5, 0, 1, -112)
+autoDropBtn.Position = UDim2.new(0.5, 0, 1, -108)
 autoDropBtn.Size = UDim2.new(1, -24, 0, 40)
 autoDropBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 autoDropBtn.BorderSizePixel = 0
@@ -232,6 +232,24 @@ autoDropBtn.Parent = mainPage
 local autoDropCorner = Instance.new("UICorner")
 autoDropCorner.CornerRadius = UDim.new(0, 6)
 autoDropCorner.Parent = autoDropBtn
+
+local antiKickBtn = Instance.new("TextButton")
+antiKickBtn.Name = "AntiKick"
+antiKickBtn.AnchorPoint = Vector2.new(0.5, 1)
+antiKickBtn.Position = UDim2.new(0.5, 0, 1, -156)
+antiKickBtn.Size = UDim2.new(1, -24, 0, 40)
+antiKickBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+antiKickBtn.BorderSizePixel = 0
+antiKickBtn.AutoButtonColor = true
+antiKickBtn.Font = Enum.Font.GothamBold
+antiKickBtn.TextSize = 14
+antiKickBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+antiKickBtn.Text = "Anti Kick: OFF"
+antiKickBtn.Parent = mainPage
+
+local antiKickCorner = Instance.new("UICorner")
+antiKickCorner.CornerRadius = UDim.new(0, 6)
+antiKickCorner.Parent = antiKickBtn
 
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
@@ -704,9 +722,119 @@ toggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Money button: run the dupe payload once per click.
+-- ==== Max Money: valary's bank/vault rob farm (Tha Bronx 3) ====
+local function fireProx(prompt)
+    if prompt and typeof(fireproximityprompt) == "function" then
+        pcall(fireproximityprompt, prompt)
+    end
+end
+
+-- One pass of the vault money farm: grab a duffel bag + C4, blow the vault,
+-- collect the cash piles, then sell the gold. Ported from valary's FarmBank.
+local function bankFarmStep()
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    if not char then
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum or hum.Health == 0 then
+        return
+    end
+
+    local vault = workspace:FindFirstChild("vault")
+    if not vault then
+        return
+    end
+    if not vault.door.robPrompt.ProximityPrompt.Enabled then
+        task.wait(0.4)
+        return
+    end
+
+    local backpack = player:FindFirstChildOfClass("Backpack")
+
+    if not char:FindFirstChild("DuffelBag") then
+        teleportTo(CFrame.new(-414, 334, -549))
+        task.wait(0.4)
+        fireProx(workspace.dufflebagequip:FindFirstChildWhichIsA("ProximityPrompt"))
+    end
+
+    if not (backpack and backpack:FindFirstChild("C4")) and not char:FindFirstChild("C4") then
+        teleportTo(CFrame.new(-412, 334, -562))
+        task.wait(0.4)
+        fireProx(workspace.GUNS.C4.Handle.BuyPrompt)
+    end
+
+    repeat
+        task.wait()
+    until (backpack and backpack:FindFirstChild("C4")) or char:FindFirstChild("C4")
+
+    local c4 = backpack and backpack:FindFirstChild("C4")
+    if c4 then
+        hum:EquipTool(c4)
+    end
+
+    teleportTo(CFrame.new(-216, 374, -1216))
+    task.wait(0.4)
+    fireProx(vault.door.robPrompt.ProximityPrompt)
+    task.wait(2)
+
+    local bag = char:FindFirstChild("DuffelBag")
+    if not bag then
+        return
+    end
+    local number = bag.display.SurfaceGui.Frame.TextLabel.Text
+    number = tonumber((number:gsub("0/", "")))
+    if not number then
+        return
+    end
+
+    for _ = 1, number do
+        local cash = workspace.BankItems.Cash:FindFirstChild("Cash")
+        if not cash then
+            for _, v in ipairs(workspace:GetChildren()) do
+                if v.Name == "Cash" and v:IsA("Model") and v:FindFirstChild("Model") then
+                    cash = v
+                end
+            end
+        end
+        if cash then
+            teleportTo(cash.Model.Cash.CFrame)
+            task.wait(0.4)
+            fireProx(cash.Model:FindFirstChildWhichIsA("ProximityPrompt", true))
+            task.wait(0.25)
+        end
+    end
+
+    teleportTo(workspace.sellgold.CFrame)
+    task.wait(0.4)
+    if typeof(fireclickdetector) == "function" then
+        pcall(fireclickdetector, workspace.sellgold.ClickDetector)
+    end
+end
+
+-- Max Money toggle: while ON, keep running the bank farm. No screen overlay.
+local maxMoneyOn = false
+local maxMoneyToken = 0
 maxMoney.MouseButton1Click:Connect(function()
-    safeRun()
+    maxMoneyOn = not maxMoneyOn
+    if maxMoneyOn then
+        maxMoney.Text = "Max Money: ON"
+        maxMoney.BackgroundColor3 = Color3.fromRGB(40, 150, 80)
+        maxMoneyToken = maxMoneyToken + 1
+        local myToken = maxMoneyToken
+        task.spawn(function()
+            while maxMoneyOn and myToken == maxMoneyToken do
+                pcall(bankFarmStep)
+                task.wait(0.4)
+            end
+        end)
+    else
+        maxMoney.Text = "Max Money: OFF"
+        maxMoney.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        maxMoneyToken = maxMoneyToken + 1 -- invalidate any running loop
+    end
 end)
 
 -- Auto Drop: while ON, drop one copy whenever 2+ of the selected item are held.
@@ -731,6 +859,44 @@ autoDropBtn.MouseButton1Click:Connect(function()
         autoDropBtn.Text = "Auto Drop: OFF"
         autoDropBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         autoDropToken = autoDropToken + 1 -- invalidate any running loop
+    end
+end)
+
+-- ==== Anti Kick: block the client Kick namecall while enabled ====
+local antiKick = false
+local antiKickHooked = false
+
+local function setupAntiKick()
+    if antiKickHooked then
+        return true
+    end
+    if typeof(hookmetamethod) ~= "function" or typeof(getnamecallmethod) ~= "function" then
+        return false
+    end
+    antiKickHooked = true
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        if antiKick and getnamecallmethod() == "Kick" and self == Players.LocalPlayer then
+            return
+        end
+        return oldNamecall(self, ...)
+    end)
+    return true
+end
+
+antiKickBtn.MouseButton1Click:Connect(function()
+    if not antiKick then
+        if not setupAntiKick() then
+            antiKickBtn.Text = "Anti Kick: N/A"
+            return
+        end
+        antiKick = true
+        antiKickBtn.Text = "Anti Kick: ON"
+        antiKickBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        antiKick = false
+        antiKickBtn.Text = "Anti Kick: OFF"
+        antiKickBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
     end
 end)
 
