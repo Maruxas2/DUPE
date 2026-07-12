@@ -2020,6 +2020,8 @@ end)
 rebuildPlayers()
 
 -- ==== Player Utils page: valary player utilities ====
+-- Wrapped in a do-block so its locals free Luau register slots.
+do
 -- Fire the game's gun remotes at a target part (valary Config.GunRemote).
 local function gunRemote(targetName, hpart, damage)
     if not hpart then
@@ -2372,7 +2374,11 @@ task.spawn(function()
     end
 end)
 
+end
+
 -- ==== Visuals page: player ESP (Drawing + Highlight) ====
+-- Wrapped in a do-block so its locals free Luau register slots.
+do
 local espFlags = {}
 local function espOn(name)
     return espFlags[name] == true
@@ -2644,6 +2650,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+end
+
 -- ==== Register scalar selections so configs restore them too. ====
 regFlag("selectedItem", function()
     return selectedItem
@@ -2664,6 +2672,8 @@ end, function(v)
 end)
 
 -- ==== Settings page: save / load / delete named configs ====
+-- Wrapped in a do-block so its many locals free Luau register slots.
+do
 local function fsHas(fn)
     return typeof(fn) == "function"
 end
@@ -2966,6 +2976,7 @@ configListLayout.Parent = configList
 
 listRefreshBtn.MouseButton1Click:Connect(refreshConfigList)
 refreshConfigList()
+end
 
 selectTab("main")
 print("[Velocity Hub] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
