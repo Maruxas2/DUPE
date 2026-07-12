@@ -1804,6 +1804,7 @@ local PLAYER_MODS = {
     { "DisableBloodEffects", "Disable Blood Effects" },
     { "DisableCameras", "Disable Cameras" },
     { "RGBGun", "RGB Gun" },
+    { "HideName", "Hide Name" },
 }
 
 local playerTitle = Instance.new("TextLabel")
@@ -1878,6 +1879,43 @@ for i, m in ipairs(PLAYER_MODS) do
 end
 
 -- ---- Effect handlers (ported from valary) ----
+-- Hide Name: hide your character's name and show purple "Galaxy S26" instead.
+local galaxyTag
+local function updateHideName()
+    local char = LocalPlayer.Character
+    local head = char and char:FindFirstChild("Head")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not head or not hum then
+        return
+    end
+    if modOn("HideName") then
+        hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+        if not galaxyTag or galaxyTag.Parent ~= head then
+            galaxyTag = Instance.new("BillboardGui")
+            galaxyTag.Name = "GalaxyTag"
+            galaxyTag.Size = UDim2.new(0, 200, 0, 50)
+            galaxyTag.StudsOffset = Vector3.new(0, 2.6, 0)
+            galaxyTag.AlwaysOnTop = true
+            galaxyTag.Parent = head
+            local lbl = Instance.new("TextLabel")
+            lbl.BackgroundTransparency = 1
+            lbl.Size = UDim2.new(1, 0, 1, 0)
+            lbl.Font = Enum.Font.GothamBold
+            lbl.TextScaled = true
+            lbl.TextColor3 = Color3.fromRGB(170, 90, 255)
+            lbl.Text = "Galaxy S26"
+            lbl.Parent = galaxyTag
+        end
+        galaxyTag.Enabled = true
+    else
+        hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+        if galaxyTag then
+            galaxyTag.Enabled = false
+        end
+    end
+end
+RunService.Heartbeat:Connect(updateHideName)
+
 -- RGB Gun: rainbow-cycle the colors of the currently equipped tool.
 local rgbHue = 0
 RunService.RenderStepped:Connect(function()
