@@ -118,7 +118,7 @@ tabLayout.Parent = tabBar
 local function makeTabButton(text, order)
     local btn = Instance.new("TextButton")
     btn.Name = text .. "Tab"
-    btn.Size = UDim2.new(0.5, 0, 1, 0)
+    btn.Size = UDim2.new(1 / 3, 0, 1, 0)
     btn.BackgroundColor3 = Color3.fromRGB(36, 36, 43)
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
@@ -133,6 +133,7 @@ end
 
 local mainTabButton = makeTabButton("Main", 1)
 local teleportTabButton = makeTabButton("Teleports", 2)
+local autoBuyTabButton = makeTabButton("Auto Buy", 3)
 
 -- Content pages (sit below the tab bar).
 local function makePage()
@@ -146,15 +147,18 @@ end
 
 local mainPage = makePage()
 local teleportPage = makePage()
+local autoBuyPage = makePage()
+
+local ACTIVE_TAB = Color3.fromRGB(60, 60, 72)
+local IDLE_TAB = Color3.fromRGB(36, 36, 43)
 
 local function selectTab(which)
-    local isMain = which == "main"
-    mainPage.Visible = isMain
-    teleportPage.Visible = not isMain
-    mainTabButton.BackgroundColor3 = isMain and Color3.fromRGB(60, 60, 72)
-        or Color3.fromRGB(36, 36, 43)
-    teleportTabButton.BackgroundColor3 = isMain and Color3.fromRGB(36, 36, 43)
-        or Color3.fromRGB(60, 60, 72)
+    mainPage.Visible = which == "main"
+    teleportPage.Visible = which == "teleports"
+    autoBuyPage.Visible = which == "autobuy"
+    mainTabButton.BackgroundColor3 = which == "main" and ACTIVE_TAB or IDLE_TAB
+    teleportTabButton.BackgroundColor3 = which == "teleports" and ACTIVE_TAB or IDLE_TAB
+    autoBuyTabButton.BackgroundColor3 = which == "autobuy" and ACTIVE_TAB or IDLE_TAB
 end
 
 mainTabButton.MouseButton1Click:Connect(function()
@@ -162,6 +166,9 @@ mainTabButton.MouseButton1Click:Connect(function()
 end)
 teleportTabButton.MouseButton1Click:Connect(function()
     selectTab("teleports")
+end)
+autoBuyTabButton.MouseButton1Click:Connect(function()
+    selectTab("autobuy")
 end)
 
 -- ==== Main page controls ====
@@ -1077,6 +1084,174 @@ constructionBtn.MouseButton1Click:Connect(function()
         constructionToken = constructionToken + 1 -- invalidate any running loop
     end
 end)
+
+-- ==== Auto Buy page: purchase items from workspace.GUNS (valary) ====
+local autoBuyTitle = Instance.new("TextLabel")
+autoBuyTitle.Name = "AutoBuyTitle"
+autoBuyTitle.BackgroundTransparency = 1
+autoBuyTitle.Position = UDim2.new(0, 12, 0, 6)
+autoBuyTitle.Size = UDim2.new(1, -24, 0, 24)
+autoBuyTitle.Font = Enum.Font.Gotham
+autoBuyTitle.TextSize = 13
+autoBuyTitle.TextColor3 = Color3.fromRGB(200, 200, 210)
+autoBuyTitle.TextXAlignment = Enum.TextXAlignment.Left
+autoBuyTitle.Text = "Click an item to buy it."
+autoBuyTitle.Parent = autoBuyPage
+
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Name = "RefreshItems"
+refreshBtn.Position = UDim2.new(0, 12, 0, 32)
+refreshBtn.Size = UDim2.new(1, -24, 0, 30)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+refreshBtn.BorderSizePixel = 0
+refreshBtn.AutoButtonColor = true
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.TextSize = 13
+refreshBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+refreshBtn.Text = "Refresh Items"
+refreshBtn.Parent = autoBuyPage
+
+local refreshCorner = Instance.new("UICorner")
+refreshCorner.CornerRadius = UDim.new(0, 6)
+refreshCorner.Parent = refreshBtn
+
+local autoBuyList = Instance.new("ScrollingFrame")
+autoBuyList.Name = "AutoBuyList"
+autoBuyList.Position = UDim2.new(0, 12, 0, 70)
+autoBuyList.Size = UDim2.new(1, -24, 1, -76)
+autoBuyList.BackgroundTransparency = 1
+autoBuyList.BorderSizePixel = 0
+autoBuyList.ScrollBarThickness = 4
+autoBuyList.CanvasSize = UDim2.new(0, 0, 0, 0)
+autoBuyList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+autoBuyList.Parent = autoBuyPage
+
+local autoBuyLayout = Instance.new("UIListLayout")
+autoBuyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+autoBuyLayout.Padding = UDim.new(0, 4)
+autoBuyLayout.Parent = autoBuyList
+
+-- Teleport to the item's shop prompt, spam it until received, then return.
+local function purchaseItem(name)
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    if not char then
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return
+    end
+    local guns = workspace:FindFirstChild("GUNS")
+    local item = guns and guns:FindFirstChild(name)
+    if not item then
+        return
+    end
+    local prompt = item:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if not prompt then
+        return
+    end
+    local part = prompt.Parent
+    if not (part and part:IsA("BasePart")) then
+        return
+    end
+
+    local oldCF = hrp.CFrame
+    teleportTo(part.CFrame)
+    task.wait(0.3)
+
+    local received = false
+    local backpack = player:FindFirstChildOfClass("Backpack")
+    local conn
+    if backpack then
+        conn = backpack.ChildAdded:Connect(function(child)
+            if tostring(child) == tostring(name) then
+                received = true
+            end
+        end)
+    end
+    task.spawn(function()
+        task.wait(1.5)
+        received = true
+    end)
+
+    repeat
+        task.wait()
+        fireProx(prompt)
+    until received
+
+    if conn then
+        conn:Disconnect()
+    end
+
+    local lookVector = hrp.CFrame.LookVector
+    teleportTo(CFrame.new(oldCF.Position, oldCF.Position + lookVector))
+end
+
+local buyBusy = false
+local function makeBuyButton(name, order)
+    local btn = Instance.new("TextButton")
+    btn.Name = "Buy_" .. order
+    btn.Size = UDim2.new(1, -4, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = name
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.LayoutOrder = order
+    btn.Parent = autoBuyList
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        if buyBusy then
+            return
+        end
+        buyBusy = true
+        btn.Text = name .. " ..."
+        task.spawn(function()
+            pcall(purchaseItem, name)
+            buyBusy = false
+            btn.Text = name
+        end)
+    end)
+end
+
+local function rebuildAutoBuy()
+    for _, c in ipairs(autoBuyList:GetChildren()) do
+        if c:IsA("TextButton") then
+            c:Destroy()
+        end
+    end
+    local guns = workspace:FindFirstChild("GUNS")
+    if not guns then
+        autoBuyTitle.Text = "No shop found (workspace.GUNS). Try Refresh."
+        return
+    end
+    local names = {}
+    for _, v in ipairs(guns:GetChildren()) do
+        if v:FindFirstChildWhichIsA("ProximityPrompt", true) then
+            table.insert(names, v.Name)
+        end
+    end
+    table.sort(names)
+    for i, n in ipairs(names) do
+        makeBuyButton(n, i)
+    end
+    if #names == 0 then
+        autoBuyTitle.Text = "No buyable items found. Try Refresh."
+    else
+        autoBuyTitle.Text = "Click an item to buy it."
+    end
+end
+
+refreshBtn.MouseButton1Click:Connect(rebuildAutoBuy)
+rebuildAutoBuy()
 
 selectTab("main")
 print("[DUPE] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
