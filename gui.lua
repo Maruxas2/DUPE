@@ -65,7 +65,7 @@ local function getParent()
 end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DupeMenu"
+screenGui.Name = "VelocityHub"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.IgnoreGuiInset = true
@@ -90,7 +90,7 @@ titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 32)
 titleBar.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
 titleBar.BorderSizePixel = 0
-titleBar.Text = "DUPE"
+titleBar.Text = "Velocity Hub"
 titleBar.Font = Enum.Font.GothamBold
 titleBar.TextSize = 16
 titleBar.TextColor3 = Color3.fromRGB(235, 235, 240)
@@ -550,6 +550,7 @@ end)
 local enabled = false
 local loopToken = 0
 local selectedItem = nil -- name of the Tool chosen in the dropdown
+local autoDrop = false -- forward-declared so the dupe loop can drop before running
 
 local function updateStatus()
     local itemText = selectedItem and ("Item: " .. selectedItem) or "Item: none"
@@ -615,16 +616,33 @@ local function toolsNamed(name)
     return matches
 end
 
--- Drop one extra copy of `name` (into the world) when 2+ are held.
+-- Press the in-game drop key (G) to drop the currently held tool.
+local function pressDropKey()
+    local vim = game:GetService("VirtualInputManager")
+    pcall(function()
+        vim:SendKeyEvent(true, Enum.KeyCode.G, false, game)
+        task.wait(0.05)
+        vim:SendKeyEvent(false, Enum.KeyCode.G, false, game)
+    end)
+end
+
+-- When 2+ copies of `name` are held, equip one and drop it with the G keybind.
 local function dropExtra(name)
     local matches = toolsNamed(name)
     if #matches < 2 then
         return
     end
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     local tool = matches[#matches]
-    pcall(function()
-        tool.Parent = workspace
-    end)
+    if humanoid and tool then
+        pcall(function()
+            humanoid:EquipTool(tool)
+        end)
+        task.wait(0.1)
+    end
+    pressDropKey()
 end
 
 -- Equip the selected tool (if in the backpack) so payloads that dupe the
@@ -726,6 +744,10 @@ local function startLoop()
     local myToken = loopToken
     task.spawn(function()
         while enabled and myToken == loopToken do
+            -- Drop a spare copy of the selected item before each dupe.
+            if autoDrop and selectedItem then
+                dropExtra(selectedItem)
+            end
             safeRun()
             -- Interruptible wait so toggling OFF stops promptly.
             local waited = 0
@@ -929,7 +951,6 @@ maxMoney.MouseButton1Click:Connect(function()
 end)
 
 -- Auto Drop: while ON, drop one copy whenever 2+ of the selected item are held.
-local autoDrop = false
 local autoDropToken = 0
 autoDropBtn.MouseButton1Click:Connect(function()
     autoDrop = not autoDrop
@@ -1273,4 +1294,4 @@ refreshBtn.MouseButton1Click:Connect(rebuildAutoBuy)
 rebuildAutoBuy()
 
 selectTab("main")
-print("[DUPE] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
+print("[Velocity Hub] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
