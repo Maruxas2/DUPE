@@ -2383,18 +2383,42 @@ regFlag("gun:SprayPaint", function()
 end, setSpray)
 
 local function spawnPaint(pos, normal)
-    local splat = Instance.new("Part")
-    splat.Anchored = true
-    splat.CanCollide = false
-    splat.CanQuery = false
-    splat.Material = Enum.Material.SmoothPlastic
-    splat.Color = Color3.fromHSV(math.random(), 1, 1)
-    splat.Size = Vector3.new(math.random(15, 35) / 10, 0.05, math.random(15, 35) / 10)
-    splat.CFrame = CFrame.new(pos, pos + normal) * CFrame.Angles(math.rad(90), 0, 0)
-    splat.Shape = Enum.PartType.Cylinder
-    splat.Parent = workspace
+    local anchor = Instance.new("Part")
+    anchor.Anchored = true
+    anchor.CanCollide = false
+    anchor.CanQuery = false
+    anchor.Transparency = 1
+    anchor.Size = Vector3.new(0.2, 0.2, 0.2)
+    anchor.CFrame = CFrame.new(pos)
+    anchor.Parent = workspace
+
+    local tag = Instance.new("BillboardGui")
+    tag.Name = "SprayTag"
+    tag.Adornee = anchor
+    tag.Size = UDim2.new(0, 700, 0, 200)
+    tag.AlwaysOnTop = true
+    tag.Parent = anchor
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(150, 40, 230)
+    frame.BorderSizePixel = 0
+    frame.Parent = tag
+    roundCorner(frame, UDim.new(0, 14))
+
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, -12, 1, -12)
+    lbl.Position = UDim2.new(0, 6, 0, 6)
+    lbl.Font = Enum.Font.GothamBlack
+    lbl.TextScaled = true
+    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lbl.TextStrokeTransparency = 0.4
+    lbl.Text = "Galaxy S26 runs shit fn"
+    lbl.Parent = frame
+
     task.delay(8, function()
-        splat:Destroy()
+        anchor:Destroy()
     end)
 end
 
