@@ -54,6 +54,12 @@ local function regFlag(name, getter, applier)
     flagAppliers[name] = applier
 end
 
+local function roundCorner(inst, udim)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = udim or UDim.new(0, 6)
+    c.Parent = inst
+end
+
 local TWEEN_SPEED = 120 -- studs/sec the tween-teleport glides at (tune vs anticheat)
 
 local function getParent()
@@ -92,9 +98,7 @@ main.Active = true
 main.Parent = screenGui
 
 -- Phone body: big rounded corners + dark bezel stroke.
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 34)
-mainCorner.Parent = main
+roundCorner(main, UDim.new(0, 34))
 
 local bezel = Instance.new("UIStroke")
 bezel.Thickness = 4
@@ -111,9 +115,7 @@ statusStrip.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
 statusStrip.BorderSizePixel = 0
 statusStrip.Parent = main
 
-local statusStripCorner = Instance.new("UICorner")
-statusStripCorner.CornerRadius = UDim.new(0, 30)
-statusStripCorner.Parent = statusStrip
+roundCorner(statusStrip, UDim.new(0, 30))
 
 -- Square off the bottom of the status strip so only the top follows the body.
 local statusStripFill = Instance.new("Frame")
@@ -161,9 +163,7 @@ notch.BorderSizePixel = 0
 notch.ZIndex = 3
 notch.Parent = statusStrip
 
-local notchCorner = Instance.new("UICorner")
-notchCorner.CornerRadius = UDim.new(0, 10)
-notchCorner.Parent = notch
+roundCorner(notch, UDim.new(0, 10))
 
 -- Home indicator bar at the bottom, like a phone.
 local homeBar = Instance.new("Frame")
@@ -176,9 +176,7 @@ homeBar.BorderSizePixel = 0
 homeBar.ZIndex = 5
 homeBar.Parent = main
 
-local homeBarCorner = Instance.new("UICorner")
-homeBarCorner.CornerRadius = UDim.new(1, 0)
-homeBarCorner.Parent = homeBar
+roundCorner(homeBar, UDim.new(1, 0))
 
 -- Keybind to show/hide the menu (default Right Shift; rebindable in Settings).
 local menuKeybind = Enum.KeyCode.RightShift
@@ -412,9 +410,7 @@ toggle.TextColor3 = Color3.fromRGB(240, 240, 245)
 toggle.Text = "Start Dupe"
 toggle.Parent = mainScroll
 
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 6)
-toggleCorner.Parent = toggle
+roundCorner(toggle, UDim.new(0, 6))
 
 local maxMoney = Instance.new("TextButton")
 maxMoney.Name = "MaxMoney"
@@ -429,9 +425,7 @@ maxMoney.TextColor3 = Color3.fromRGB(240, 245, 240)
 maxMoney.Text = "Max Money"
 maxMoney.Parent = mainScroll
 
-local maxMoneyCorner = Instance.new("UICorner")
-maxMoneyCorner.CornerRadius = UDim.new(0, 6)
-maxMoneyCorner.Parent = maxMoney
+roundCorner(maxMoney, UDim.new(0, 6))
 
 local autoDropBtn = Instance.new("TextButton")
 autoDropBtn.Name = "AutoDrop"
@@ -446,9 +440,7 @@ autoDropBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 autoDropBtn.Text = "Auto Drop: OFF"
 autoDropBtn.Parent = mainScroll
 
-local autoDropCorner = Instance.new("UICorner")
-autoDropCorner.CornerRadius = UDim.new(0, 6)
-autoDropCorner.Parent = autoDropBtn
+roundCorner(autoDropBtn, UDim.new(0, 6))
 
 local antiKickBtn = Instance.new("TextButton")
 antiKickBtn.Name = "AntiKick"
@@ -463,9 +455,7 @@ antiKickBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 antiKickBtn.Text = "Anti Kick: OFF"
 antiKickBtn.Parent = mainScroll
 
-local antiKickCorner = Instance.new("UICorner")
-antiKickCorner.CornerRadius = UDim.new(0, 6)
-antiKickCorner.Parent = antiKickBtn
+roundCorner(antiKickBtn, UDim.new(0, 6))
 
 local constructionBtn = Instance.new("TextButton")
 constructionBtn.Name = "ConstructionFarm"
@@ -480,9 +470,7 @@ constructionBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 constructionBtn.Text = "Construction Farm: OFF"
 constructionBtn.Parent = mainScroll
 
-local constructionCorner = Instance.new("UICorner")
-constructionCorner.CornerRadius = UDim.new(0, 6)
-constructionCorner.Parent = constructionBtn
+roundCorner(constructionBtn, UDim.new(0, 6))
 
 local studioBtn = Instance.new("TextButton")
 studioBtn.Name = "StudioFarm"
@@ -497,9 +485,7 @@ studioBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 studioBtn.Text = "Studio Farm: OFF"
 studioBtn.Parent = mainScroll
 
-local studioCorner = Instance.new("UICorner")
-studioCorner.CornerRadius = UDim.new(0, 6)
-studioCorner.Parent = studioBtn
+roundCorner(studioBtn, UDim.new(0, 6))
 
 local cleanMoneyBtn = Instance.new("TextButton")
 cleanMoneyBtn.Name = "CleanMoney"
@@ -514,9 +500,7 @@ cleanMoneyBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 cleanMoneyBtn.Text = "Clean All Filthy Money"
 cleanMoneyBtn.Parent = mainScroll
 
-local cleanMoneyCorner = Instance.new("UICorner")
-cleanMoneyCorner.CornerRadius = UDim.new(0, 6)
-cleanMoneyCorner.Parent = cleanMoneyBtn
+roundCorner(cleanMoneyBtn, UDim.new(0, 6))
 
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
@@ -532,9 +516,7 @@ selector.TextColor3 = Color3.fromRGB(230, 230, 235)
 selector.Text = "Select item ▼"
 selector.Parent = mainScroll
 
-local selectorCorner = Instance.new("UICorner")
-selectorCorner.CornerRadius = UDim.new(0, 6)
-selectorCorner.Parent = selector
+roundCorner(selector, UDim.new(0, 6))
 
 local listFrame = Instance.new("ScrollingFrame")
 listFrame.Name = "ItemList"
@@ -548,9 +530,7 @@ listFrame.ScrollBarThickness = 4
 listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 listFrame.Parent = mainScroll
 
-local listCorner = Instance.new("UICorner")
-listCorner.CornerRadius = UDim.new(0, 6)
-listCorner.Parent = listFrame
+roundCorner(listFrame, UDim.new(0, 6))
 
 local listLayout = Instance.new("UIListLayout")
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -581,9 +561,7 @@ methodBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 methodBtn.Text = METHOD_LABELS[teleportMode]
 methodBtn.Parent = teleportPage
 
-local methodCorner = Instance.new("UICorner")
-methodCorner.CornerRadius = UDim.new(0, 6)
-methodCorner.Parent = methodBtn
+roundCorner(methodBtn, UDim.new(0, 6))
 
 local function setTeleportMode(mode)
     if not METHOD_LABELS[mode] then
@@ -616,9 +594,7 @@ antiTpBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 antiTpBtn.Text = "Anti-TP Bypass: OFF"
 antiTpBtn.Parent = teleportPage
 
-local antiTpCorner = Instance.new("UICorner")
-antiTpCorner.CornerRadius = UDim.new(0, 6)
-antiTpCorner.Parent = antiTpBtn
+roundCorner(antiTpBtn, UDim.new(0, 6))
 
 local teleportList = Instance.new("ScrollingFrame")
 teleportList.Name = "TeleportList"
@@ -759,9 +735,7 @@ for i, entry in ipairs(TELEPORTS) do
     btn.LayoutOrder = i
     btn.Parent = teleportList
 
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = btn
+    roundCorner(btn, UDim.new(0, 6))
 
     btn.MouseButton1Click:Connect(function()
         teleportTo(cframe)
@@ -1597,9 +1571,7 @@ refreshBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
 refreshBtn.Text = "Refresh Items"
 refreshBtn.Parent = autoBuyPage
 
-local refreshCorner = Instance.new("UICorner")
-refreshCorner.CornerRadius = UDim.new(0, 6)
-refreshCorner.Parent = refreshBtn
+roundCorner(refreshBtn, UDim.new(0, 6))
 
 local autoBuyList = Instance.new("ScrollingFrame")
 autoBuyList.Name = "AutoBuyList"
@@ -2083,9 +2055,7 @@ playersRefresh.TextColor3 = Color3.fromRGB(230, 230, 235)
 playersRefresh.Text = "Refresh Players"
 playersRefresh.Parent = playersPage
 
-local playersRefreshCorner = Instance.new("UICorner")
-playersRefreshCorner.CornerRadius = UDim.new(0, 6)
-playersRefreshCorner.Parent = playersRefresh
+roundCorner(playersRefresh, UDim.new(0, 6))
 
 local playersList = Instance.new("ScrollingFrame")
 playersList.Name = "PlayersList"
@@ -2906,9 +2876,7 @@ nameBox.Text = "default"
 nameBox.ClearTextOnFocus = false
 nameBox.Parent = settingsPage
 
-local nameBoxCorner = Instance.new("UICorner")
-nameBoxCorner.CornerRadius = UDim.new(0, 6)
-nameBoxCorner.Parent = nameBox
+roundCorner(nameBox, UDim.new(0, 6))
 
 local settingsStatus = Instance.new("TextLabel")
 settingsStatus.Name = "SettingsStatus"
@@ -3022,9 +2990,7 @@ loadBtn.TextSize = 13
 loadBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 loadBtn.Text = "Load"
 loadBtn.Parent = settingsPage
-local loadCorner = Instance.new("UICorner")
-loadCorner.CornerRadius = UDim.new(0, 6)
-loadCorner.Parent = loadBtn
+roundCorner(loadBtn, UDim.new(0, 6))
 loadBtn.MouseButton1Click:Connect(function()
     if not fileSupported then
         settingsStatus.Text = "No file API in this executor."
@@ -3086,9 +3052,7 @@ listRefreshBtn.TextSize = 13
 listRefreshBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
 listRefreshBtn.Text = "Refresh List"
 listRefreshBtn.Parent = settingsPage
-local listRefreshCorner = Instance.new("UICorner")
-listRefreshCorner.CornerRadius = UDim.new(0, 6)
-listRefreshCorner.Parent = listRefreshBtn
+roundCorner(listRefreshBtn, UDim.new(0, 6))
 
 local keybindBtn = Instance.new("TextButton")
 keybindBtn.Name = "Settings_MenuKeybind"
@@ -3102,9 +3066,7 @@ keybindBtn.TextSize = 13
 keybindBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 keybindBtn.Text = "Menu Toggle: " .. menuKeybind.Name
 keybindBtn.Parent = settingsPage
-local keybindCorner = Instance.new("UICorner")
-keybindCorner.CornerRadius = UDim.new(0, 6)
-keybindCorner.Parent = keybindBtn
+roundCorner(keybindBtn, UDim.new(0, 6))
 keybindBtn.MouseButton1Click:Connect(function()
     rebindingMenu = true
     keybindBtn.Text = "Press a key... (Esc to cancel)"
@@ -3151,9 +3113,7 @@ themeBtn.TextSize = 13
 themeBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 themeBtn.Text = "Theme: " .. currentTheme
 themeBtn.Parent = settingsPage
-local themeCorner = Instance.new("UICorner")
-themeCorner.CornerRadius = UDim.new(0, 6)
-themeCorner.Parent = themeBtn
+roundCorner(themeBtn, UDim.new(0, 6))
 themeBtn.MouseButton1Click:Connect(function()
     themeIndex = themeIndex % #THEMES + 1
     applyTheme(THEMES[themeIndex].name)
