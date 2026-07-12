@@ -208,7 +208,7 @@ maxMoney.AutoButtonColor = true
 maxMoney.Font = Enum.Font.GothamBold
 maxMoney.TextSize = 15
 maxMoney.TextColor3 = Color3.fromRGB(240, 245, 240)
-maxMoney.Text = "Max Money: OFF"
+maxMoney.Text = "Max Money"
 maxMoney.Parent = mainPage
 
 local maxMoneyCorner = Instance.new("UICorner")
@@ -722,16 +722,40 @@ toggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- ==== Max Money: valary's bank/vault rob farm (Tha Bronx 3) ====
+-- ==== Max Money: valary's "Generate Max Illegal Money" (IceFruit dupe) ====
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+
 local function fireProx(prompt)
     if prompt and typeof(fireproximityprompt) == "function" then
         pcall(fireproximityprompt, prompt)
     end
 end
 
--- One pass of the vault money farm: grab a duffel bag + C4, blow the vault,
--- collect the cash piles, then sell the gold. Ported from valary's FarmBank.
-local function bankFarmStep()
+local function getFruitCup()
+    local player = Players.LocalPlayer
+    for _, container in ipairs({ player:FindFirstChildOfClass("Backpack"), player.Character }) do
+        if container then
+            for _, v in ipairs(container:GetChildren()) do
+                if v:IsA("Tool") and v.Name == "Ice-Fruit Cupz" then
+                    local transparency
+                    pcall(function()
+                        transparency = v["IceFruit Cup"]["IceFruit PunchMedium"].Transparency
+                    end)
+                    if transparency ~= nil and transparency ~= 1 then
+                        return true, v
+                    end
+                end
+            end
+        end
+    end
+    return false, nil
+end
+
+-- One-shot: generate the max amount of illegal cash via the IceFruit sell
+-- exploit. Ported from valary's "Generate Max Illegal Money" button, with the
+-- valary.gg black-screen overlay (HideScreen/SetText) stripped out.
+local function generateMaxMoney()
     local player = Players.LocalPlayer
     local char = player and player.Character
     if not char then
@@ -739,102 +763,144 @@ local function bankFarmStep()
     end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     local hum = char:FindFirstChild("Humanoid")
-    if not hrp or not hum or hum.Health == 0 then
+    if not hrp or not hum then
         return
     end
-
-    local vault = workspace:FindFirstChild("vault")
-    if not vault then
-        return
-    end
-    if not vault.door.robPrompt.ProximityPrompt.Enabled then
-        task.wait(0.4)
-        return
-    end
-
     local backpack = player:FindFirstChildOfClass("Backpack")
 
-    if not char:FindFirstChild("DuffelBag") then
-        teleportTo(CFrame.new(-414, 334, -549))
-        task.wait(0.4)
-        fireProx(workspace.dufflebagequip:FindFirstChildWhichIsA("ProximityPrompt"))
+    -- Fast path: already holding a finished cup, just spam-sell it.
+    local found, cup = getFruitCup()
+    if cup and found then
+        local oldCF = hrp.CFrame
+        if backpack and cup.Parent == backpack then
+            hum:EquipTool(cup)
+            task.wait(1)
+        end
+        teleportTo(workspace["IceFruit Sell"].CFrame)
+        task.wait(0.5)
+        for _ = 1, 4000 do
+            task.spawn(function()
+                fireProx(workspace["IceFruit Sell"].ProximityPrompt)
+            end)
+        end
+        teleportTo(oldCF)
+        return
     end
 
-    if not (backpack and backpack:FindFirstChild("C4")) and not char:FindFirstChild("C4") then
-        teleportTo(CFrame.new(-412, 334, -562))
-        task.wait(0.4)
-        fireProx(workspace.GUNS.C4.Handle.BuyPrompt)
+    local oldCF = hrp.CFrame
+    local itemz = { "FijiWater", "FreshWater", "Ice-Fruit Bag", "Ice-Fruit Cupz" }
+
+    local stove
+    for _, v in ipairs(workspace.CookingPots:GetChildren()) do
+        if v:IsA("Model") then
+            local prompt = v:FindFirstChildWhichIsA("ProximityPrompt", true)
+            if prompt and prompt.ActionText == "Turn On" and prompt.Enabled then
+                stove = v
+                break
+            end
+        end
+    end
+
+    for _, name in ipairs(itemz) do
+        if not (backpack and backpack:FindFirstChild(name)) then
+            pcall(function()
+                ReplicatedStorage:WaitForChild("ExoticShopRemote"):InvokeServer(name)
+            end)
+            task.wait(1)
+        end
+    end
+
+    for _, name in ipairs(itemz) do
+        if not (backpack and backpack:FindFirstChild(name)) then
+            -- Couldn't buy the products (need ~$5,000). Bail quietly.
+            return
+        end
+    end
+
+    if not stove then
+        return
+    end
+
+    teleportTo(stove.CookPart.CFrame)
+    task.wait(1)
+
+    pcall(function()
+        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+    end)
+    hrp.Anchored = true
+
+    task.wait(1.5)
+    fireProx(stove:FindFirstChildWhichIsA("ProximityPrompt", true))
+    task.wait(2)
+
+    for _, name in ipairs({ "FijiWater", "FreshWater", "Ice-Fruit Bag" }) do
+        local tool = backpack and backpack:FindFirstChild(name)
+        if tool then
+            hum:EquipTool(tool)
+        end
+        task.wait(1)
+        fireProx(stove:FindFirstChildWhichIsA("ProximityPrompt", true))
+        task.wait(3)
     end
 
     repeat
         task.wait()
-    until (backpack and backpack:FindFirstChild("C4")) or char:FindFirstChild("C4")
+    until stove.CookPart.Steam.LoadUI.Enabled == false
 
-    local c4 = backpack and backpack:FindFirstChild("C4")
-    if c4 then
-        hum:EquipTool(c4)
-    end
-
-    teleportTo(CFrame.new(-216, 374, -1216))
-    task.wait(0.4)
-    fireProx(vault.door.robPrompt.ProximityPrompt)
-    task.wait(2)
-
-    local bag = char:FindFirstChild("DuffelBag")
-    if not bag then
-        return
-    end
-    local number = bag.display.SurfaceGui.Frame.TextLabel.Text
-    number = tonumber((number:gsub("0/", "")))
-    if not number then
-        return
-    end
-
-    for _ = 1, number do
-        local cash = workspace.BankItems.Cash:FindFirstChild("Cash")
-        if not cash then
-            for _, v in ipairs(workspace:GetChildren()) do
-                if v.Name == "Cash" and v:IsA("Model") and v:FindFirstChild("Model") then
-                    cash = v
-                end
-            end
+    if not char:FindFirstChild("Ice-Fruit Cupz") then
+        local tool = backpack and backpack:FindFirstChild("Ice-Fruit Cupz")
+        if tool then
+            hum:EquipTool(tool)
         end
-        if cash then
-            teleportTo(cash.Model.Cash.CFrame)
-            task.wait(0.4)
-            fireProx(cash.Model:FindFirstChildWhichIsA("ProximityPrompt", true))
-            task.wait(0.25)
-        end
+        task.wait(1)
     end
 
-    teleportTo(workspace.sellgold.CFrame)
-    task.wait(0.4)
-    if typeof(fireclickdetector) == "function" then
-        pcall(fireclickdetector, workspace.sellgold.ClickDetector)
+    task.wait(1)
+    fireProx(stove:FindFirstChildWhichIsA("ProximityPrompt", true))
+    task.wait(3)
+
+    hrp.Anchored = false
+    teleportTo(workspace["IceFruit Sell"].CFrame)
+    task.wait(1)
+    hrp.Anchored = true
+    task.wait(1.5)
+
+    if not char:FindFirstChild("Ice-Fruit Cupz") then
+        local tool = backpack and backpack:FindFirstChild("Ice-Fruit Cupz")
+        if tool then
+            hum:EquipTool(tool)
+        end
+        task.wait(1)
     end
+
+    workspace["IceFruit Sell"].ProximityPrompt.HoldDuration = 0
+    for _ = 1, 4000 do
+        task.spawn(function()
+            fireProx(workspace["IceFruit Sell"].ProximityPrompt)
+        end)
+    end
+
+    hrp.Anchored = false
+    pcall(function()
+        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+    end)
+    task.wait(0.5)
+    teleportTo(oldCF)
 end
 
--- Max Money toggle: while ON, keep running the bank farm. No screen overlay.
-local maxMoneyOn = false
-local maxMoneyToken = 0
+-- Max Money button: one click generates the max illegal cash. No overlay.
+local maxMoneyRunning = false
 maxMoney.MouseButton1Click:Connect(function()
-    maxMoneyOn = not maxMoneyOn
-    if maxMoneyOn then
-        maxMoney.Text = "Max Money: ON"
-        maxMoney.BackgroundColor3 = Color3.fromRGB(40, 150, 80)
-        maxMoneyToken = maxMoneyToken + 1
-        local myToken = maxMoneyToken
-        task.spawn(function()
-            while maxMoneyOn and myToken == maxMoneyToken do
-                pcall(bankFarmStep)
-                task.wait(0.4)
-            end
-        end)
-    else
-        maxMoney.Text = "Max Money: OFF"
-        maxMoney.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
-        maxMoneyToken = maxMoneyToken + 1 -- invalidate any running loop
+    if maxMoneyRunning then
+        return
     end
+    maxMoneyRunning = true
+    maxMoney.Text = "Max Money..."
+    task.spawn(function()
+        pcall(generateMaxMoney)
+        maxMoneyRunning = false
+        maxMoney.Text = "Max Money"
+    end)
 end)
 
 -- Auto Drop: while ON, drop one copy whenever 2+ of the selected item are held.
