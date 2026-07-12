@@ -323,6 +323,15 @@ local THEMES = {
     { name = "Emerald", bg = Color3.fromRGB(16, 30, 22), bar = Color3.fromRGB(22, 52, 38), tabIdle = Color3.fromRGB(20, 42, 30), tabActive = Color3.fromRGB(40, 160, 90), accent = Color3.fromRGB(110, 240, 160) },
     { name = "Sunset", bg = Color3.fromRGB(34, 20, 24), bar = Color3.fromRGB(70, 34, 30), tabIdle = Color3.fromRGB(52, 26, 26), tabActive = Color3.fromRGB(220, 110, 50), accent = Color3.fromRGB(255, 170, 90) },
     { name = "Mono Light", bg = Color3.fromRGB(232, 232, 236), bar = Color3.fromRGB(210, 210, 216), tabIdle = Color3.fromRGB(200, 200, 208), tabActive = Color3.fromRGB(150, 150, 160), accent = Color3.fromRGB(40, 40, 48) },
+    { name = "Hot Pink", bg = Color3.fromRGB(34, 16, 26), bar = Color3.fromRGB(70, 24, 48), tabIdle = Color3.fromRGB(52, 20, 38), tabActive = Color3.fromRGB(230, 60, 140), accent = Color3.fromRGB(255, 120, 190) },
+    { name = "Gold Lux", bg = Color3.fromRGB(26, 22, 12), bar = Color3.fromRGB(52, 44, 20), tabIdle = Color3.fromRGB(40, 34, 16), tabActive = Color3.fromRGB(200, 160, 40), accent = Color3.fromRGB(255, 215, 90) },
+    { name = "Matrix", bg = Color3.fromRGB(8, 16, 8), bar = Color3.fromRGB(14, 34, 14), tabIdle = Color3.fromRGB(12, 26, 12), tabActive = Color3.fromRGB(30, 180, 40), accent = Color3.fromRGB(80, 255, 90) },
+    { name = "Ice", bg = Color3.fromRGB(20, 28, 34), bar = Color3.fromRGB(30, 48, 60), tabIdle = Color3.fromRGB(26, 40, 50), tabActive = Color3.fromRGB(90, 170, 210), accent = Color3.fromRGB(170, 225, 255) },
+    { name = "Vaporwave", bg = Color3.fromRGB(28, 18, 40), bar = Color3.fromRGB(58, 30, 78), tabIdle = Color3.fromRGB(44, 24, 60), tabActive = Color3.fromRGB(255, 90, 200), accent = Color3.fromRGB(120, 230, 255) },
+    { name = "Crimson Night", bg = Color3.fromRGB(18, 12, 16), bar = Color3.fromRGB(40, 16, 24), tabIdle = Color3.fromRGB(30, 14, 20), tabActive = Color3.fromRGB(200, 30, 60), accent = Color3.fromRGB(255, 90, 110) },
+    { name = "Slate", bg = Color3.fromRGB(24, 26, 30), bar = Color3.fromRGB(40, 44, 52), tabIdle = Color3.fromRGB(32, 36, 42), tabActive = Color3.fromRGB(90, 100, 120), accent = Color3.fromRGB(200, 210, 225) },
+    { name = "Lava", bg = Color3.fromRGB(26, 12, 8), bar = Color3.fromRGB(58, 22, 12), tabIdle = Color3.fromRGB(44, 18, 10), tabActive = Color3.fromRGB(230, 90, 20), accent = Color3.fromRGB(255, 160, 60) },
+    { name = "Aqua Mint", bg = Color3.fromRGB(14, 30, 28), bar = Color3.fromRGB(20, 54, 50), tabIdle = Color3.fromRGB(18, 42, 40), tabActive = Color3.fromRGB(40, 190, 160), accent = Color3.fromRGB(130, 255, 220) },
 }
 
 local currentTheme = "Midnight"
