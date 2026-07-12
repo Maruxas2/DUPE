@@ -118,12 +118,12 @@ tabLayout.Parent = tabBar
 local function makeTabButton(text, order)
     local btn = Instance.new("TextButton")
     btn.Name = text .. "Tab"
-    btn.Size = UDim2.new(1 / 3, 0, 1, 0)
+    btn.Size = UDim2.new(0.25, 0, 1, 0)
     btn.BackgroundColor3 = Color3.fromRGB(36, 36, 43)
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
+    btn.TextSize = 12
     btn.TextColor3 = Color3.fromRGB(230, 230, 235)
     btn.Text = text
     btn.LayoutOrder = order
@@ -134,6 +134,7 @@ end
 local mainTabButton = makeTabButton("Main", 1)
 local teleportTabButton = makeTabButton("Teleports", 2)
 local autoBuyTabButton = makeTabButton("Auto Buy", 3)
+local playerTabButton = makeTabButton("Player", 4)
 
 -- Content pages (sit below the tab bar).
 local function makePage()
@@ -148,6 +149,7 @@ end
 local mainPage = makePage()
 local teleportPage = makePage()
 local autoBuyPage = makePage()
+local playerPage = makePage()
 
 local ACTIVE_TAB = Color3.fromRGB(60, 60, 72)
 local IDLE_TAB = Color3.fromRGB(36, 36, 43)
@@ -156,9 +158,11 @@ local function selectTab(which)
     mainPage.Visible = which == "main"
     teleportPage.Visible = which == "teleports"
     autoBuyPage.Visible = which == "autobuy"
+    playerPage.Visible = which == "player"
     mainTabButton.BackgroundColor3 = which == "main" and ACTIVE_TAB or IDLE_TAB
     teleportTabButton.BackgroundColor3 = which == "teleports" and ACTIVE_TAB or IDLE_TAB
     autoBuyTabButton.BackgroundColor3 = which == "autobuy" and ACTIVE_TAB or IDLE_TAB
+    playerTabButton.BackgroundColor3 = which == "player" and ACTIVE_TAB or IDLE_TAB
 end
 
 mainTabButton.MouseButton1Click:Connect(function()
@@ -169,6 +173,9 @@ teleportTabButton.MouseButton1Click:Connect(function()
 end)
 autoBuyTabButton.MouseButton1Click:Connect(function()
     selectTab("autobuy")
+end)
+playerTabButton.MouseButton1Click:Connect(function()
+    selectTab("player")
 end)
 
 -- ==== Main page controls ====
@@ -1292,6 +1299,287 @@ end
 
 refreshBtn.MouseButton1Click:Connect(rebuildAutoBuy)
 rebuildAutoBuy()
+
+-- ==== Player page: LocalPlayer modifications (valary PlayerModifications) ====
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local LocalPlayer = Players.LocalPlayer
+
+local mods = {}
+local function modOn(name)
+    return mods[name] == true
+end
+
+local PLAYER_MODS = {
+    { "InfiniteStamina", "Infinite Stamina" },
+    { "InfiniteHunger", "Infinite Hunger" },
+    { "InfiniteSleep", "Infinite Sleep" },
+    { "InfiniteHealth", "Infinite Health" },
+    { "NoFallDamage", "No Fall Damage" },
+    { "NoKnockback", "No Knockback" },
+    { "NoJumpCooldown", "No Jump Cooldown" },
+    { "NoRentPay", "No Rent Pay" },
+    { "FasterRespawn", "Faster Respawn" },
+    { "RespawnWhereYouDied", "Respawn Where You Died" },
+    { "InstantInteract", "Instant Interact" },
+    { "InstantRevive", "Instant Revive" },
+    { "BypassLockedCars", "Bypass Locked Cars" },
+    { "AutoPickupCash", "Auto Pickup Cash" },
+    { "AutoPickupBags", "Auto Pickup Bags" },
+    { "DisableCameraBobbing", "Disable Camera Bobbing" },
+    { "DisableBloodEffects", "Disable Blood Effects" },
+    { "DisableCameras", "Disable Cameras" },
+}
+
+local playerTitle = Instance.new("TextLabel")
+playerTitle.Name = "PlayerTitle"
+playerTitle.BackgroundTransparency = 1
+playerTitle.Position = UDim2.new(0, 12, 0, 6)
+playerTitle.Size = UDim2.new(1, -24, 0, 20)
+playerTitle.Font = Enum.Font.Gotham
+playerTitle.TextSize = 13
+playerTitle.TextColor3 = Color3.fromRGB(200, 200, 210)
+playerTitle.TextXAlignment = Enum.TextXAlignment.Left
+playerTitle.Text = "Toggle a modification."
+playerTitle.Parent = playerPage
+
+local playerList = Instance.new("ScrollingFrame")
+playerList.Name = "PlayerList"
+playerList.Position = UDim2.new(0, 12, 0, 30)
+playerList.Size = UDim2.new(1, -24, 1, -36)
+playerList.BackgroundTransparency = 1
+playerList.BorderSizePixel = 0
+playerList.ScrollBarThickness = 4
+playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+playerList.Parent = playerPage
+
+local playerLayout = Instance.new("UIListLayout")
+playerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+playerLayout.Padding = UDim.new(0, 4)
+playerLayout.Parent = playerList
+
+local function makeModToggle(key, label, order)
+    local btn = Instance.new("TextButton")
+    btn.Name = "Mod_" .. key
+    btn.Size = UDim2.new(1, -4, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = label .. ": OFF"
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.LayoutOrder = order
+    btn.Parent = playerList
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        mods[key] = not mods[key]
+        if mods[key] then
+            btn.Text = label .. ": ON"
+            btn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        else
+            btn.Text = label .. ": OFF"
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+        end
+    end)
+end
+
+for i, m in ipairs(PLAYER_MODS) do
+    makeModToggle(m[1], m[2], i)
+end
+
+-- ---- Effect handlers (ported from valary) ----
+local deathFrame
+
+local function hookKnockback(container)
+    container.DescendantAdded:Connect(function(d)
+        if modOn("NoKnockback") and (d:IsA("BodyVelocity") or d:IsA("LinearVelocity") or d:IsA("VectorForce")) then
+            task.wait()
+            pcall(function()
+                d:Destroy()
+            end)
+        end
+    end)
+end
+
+local function hookChar(char)
+    char:WaitForChild("Humanoid")
+    char:WaitForChild("HumanoidRootPart")
+    hookKnockback(char)
+    char.Humanoid.Died:Connect(function()
+        deathFrame = char.HumanoidRootPart.CFrame
+    end)
+    if modOn("RespawnWhereYouDied") and typeof(deathFrame) == "CFrame" then
+        char.HumanoidRootPart.CFrame = deathFrame
+    end
+end
+
+if LocalPlayer.Character then
+    task.spawn(function()
+        pcall(hookChar, LocalPlayer.Character)
+    end)
+end
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.spawn(function()
+        pcall(hookChar, char)
+    end)
+end)
+
+-- Faster respawn + infinite health.
+task.spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if not hum then
+                return
+            end
+            if modOn("FasterRespawn") and hum:GetState() == Enum.HumanoidStateType.Dead then
+                ReplicatedStorage:WaitForChild("LoadCharacter"):FireServer()
+            end
+            if modOn("InfiniteHealth") and hum.Health > 0 then
+                hum.Health = hum.MaxHealth
+            end
+        end)
+    end
+end)
+
+local function setScriptDisabled(inst, disabled)
+    if inst then
+        inst.Disabled = disabled
+    end
+end
+
+-- Script toggles + auto pickups (valary "PlayerFunctions").
+RunService.Heartbeat:Connect(function()
+    pcall(function()
+        local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+        local char = LocalPlayer.Character
+
+        if pg then
+            local run = pg:FindFirstChild("Run")
+            if run then
+                setScriptDisabled(run:FindFirstChild("StaminaBarScript", true), modOn("InfiniteStamina"))
+            end
+            local hunger = pg:FindFirstChild("Hunger")
+            if hunger then
+                setScriptDisabled(hunger:FindFirstChild("HungerBarScript", true), modOn("InfiniteHunger"))
+            end
+            local sleep = pg:FindFirstChild("SleepGui")
+            if sleep then
+                setScriptDisabled(sleep:FindFirstChild("sleepScript", true), modOn("InfiniteSleep"))
+            end
+            local blood = pg:FindFirstChild("BloodGui")
+            if blood then
+                blood.Enabled = not modOn("DisableBloodEffects")
+            end
+            local jump = pg:FindFirstChild("JumpDebounce")
+            if jump and jump:FindFirstChild("LocalScript") then
+                jump.LocalScript.Disabled = modOn("NoJumpCooldown")
+            end
+            local cams = pg:FindFirstChild("CameraTexts")
+            if cams and cams:FindFirstChild("LocalScript") then
+                cams.Enabled = not modOn("DisableCameras")
+                cams.LocalScript.Disabled = modOn("DisableCameras")
+            end
+            local rent = pg:FindFirstChild("RentGui")
+            if rent and rent:FindFirstChild("LocalScript") then
+                rent.LocalScript.Disabled = modOn("NoRentPay")
+            end
+        end
+
+        if char then
+            local bob = char:FindFirstChild("CameraBobbing")
+            if bob then
+                bob.Disabled = modOn("DisableCameraBobbing")
+            end
+            local fall = char:FindFirstChild("FallDamageRagdoll")
+            if fall then
+                fall.Disabled = modOn("NoFallDamage")
+            end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                if modOn("AutoPickupBags") and workspace:FindFirstChild("Storage") then
+                    for _, v in ipairs(workspace.Storage:GetChildren()) do
+                        if v:IsA("MeshPart") and v:FindFirstChild("stealprompt") then
+                            local nameVal = v:FindFirstChild("PlayerName")
+                            if not (nameVal and nameVal.Value == LocalPlayer.Name) then
+                                if (v.Position - hrp.Position).Magnitude < 5 then
+                                    fireProx(v.stealprompt)
+                                end
+                            end
+                        end
+                    end
+                end
+                if modOn("AutoPickupCash") and workspace:FindFirstChild("Dollas") then
+                    for _, v in ipairs(workspace.Dollas:GetChildren()) do
+                        if v:IsA("Part") and v:FindFirstChild("ProximityPrompt") then
+                            if (v.Position - hrp.Position).Magnitude < 5 then
+                                fireProx(v.ProximityPrompt)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+-- Instant revive.
+RunService.Heartbeat:Connect(function()
+    if not modOn("InstantRevive") then
+        return
+    end
+    pcall(function()
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum then
+            return
+        end
+        if hum:GetState() == Enum.HumanoidStateType.Physics then
+            local remote = ReplicatedStorage:FindFirstChild("FSpamRemote")
+            if remote then
+                remote:FireServer()
+            end
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end)
+end)
+
+-- Instant interact + bypass locked cars.
+ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, plr)
+    if plr ~= LocalPlayer or not prompt then
+        return
+    end
+    pcall(function()
+        if modOn("InstantInteract") then
+            fireProx(prompt)
+        end
+        if modOn("BypassLockedCars") then
+            local p = prompt
+            while p do
+                if p.Parent and p.Parent:FindFirstChild("DriveSeat") then
+                    if p:IsA("VehicleSeat") and LocalPlayer.Character then
+                        p:Sit(LocalPlayer.Character:FindFirstChildOfClass("Humanoid"))
+                    else
+                        p = p.Parent
+                    end
+                    break
+                else
+                    p = p.Parent
+                end
+                if not (p and p.Parent) then
+                    break
+                end
+            end
+        end
+    end)
+end)
 
 selectTab("main")
 print("[Velocity Hub] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
