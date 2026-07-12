@@ -105,7 +105,7 @@ titleCorner.Parent = titleBar
 local tabBar = Instance.new("Frame")
 tabBar.Name = "TabBar"
 tabBar.Position = UDim2.new(0, 0, 0, 32)
-tabBar.Size = UDim2.new(1, 0, 0, 56)
+tabBar.Size = UDim2.new(1, 0, 0, 82)
 tabBar.BackgroundColor3 = Color3.fromRGB(36, 36, 43)
 tabBar.BorderSizePixel = 0
 tabBar.Parent = main
@@ -138,12 +138,13 @@ local autoBuyTabButton = makeTabButton("Auto Buy", 3)
 local playerTabButton = makeTabButton("Player", 4)
 local playersTabButton = makeTabButton("Players", 5)
 local playerUtilsTabButton = makeTabButton("Player Utils", 6)
+local visualsTabButton = makeTabButton("Visuals", 7)
 
 -- Content pages (sit below the tab bar).
 local function makePage()
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, 0, 1, -88)
-    page.Position = UDim2.new(0, 0, 0, 88)
+    page.Size = UDim2.new(1, 0, 1, -114)
+    page.Position = UDim2.new(0, 0, 0, 114)
     page.BackgroundTransparency = 1
     page.Parent = main
     return page
@@ -155,6 +156,7 @@ local autoBuyPage = makePage()
 local playerPage = makePage()
 local playersPage = makePage()
 local playerUtilsPage = makePage()
+local visualsPage = makePage()
 
 local ACTIVE_TAB = Color3.fromRGB(60, 60, 72)
 local IDLE_TAB = Color3.fromRGB(36, 36, 43)
@@ -166,12 +168,14 @@ local function selectTab(which)
     playerPage.Visible = which == "player"
     playersPage.Visible = which == "players"
     playerUtilsPage.Visible = which == "playerutils"
+    visualsPage.Visible = which == "visuals"
     mainTabButton.BackgroundColor3 = which == "main" and ACTIVE_TAB or IDLE_TAB
     teleportTabButton.BackgroundColor3 = which == "teleports" and ACTIVE_TAB or IDLE_TAB
     autoBuyTabButton.BackgroundColor3 = which == "autobuy" and ACTIVE_TAB or IDLE_TAB
     playerTabButton.BackgroundColor3 = which == "player" and ACTIVE_TAB or IDLE_TAB
     playersTabButton.BackgroundColor3 = which == "players" and ACTIVE_TAB or IDLE_TAB
     playerUtilsTabButton.BackgroundColor3 = which == "playerutils" and ACTIVE_TAB or IDLE_TAB
+    visualsTabButton.BackgroundColor3 = which == "visuals" and ACTIVE_TAB or IDLE_TAB
 end
 
 mainTabButton.MouseButton1Click:Connect(function()
@@ -191,6 +195,9 @@ playersTabButton.MouseButton1Click:Connect(function()
 end)
 playerUtilsTabButton.MouseButton1Click:Connect(function()
     selectTab("playerutils")
+end)
+visualsTabButton.MouseButton1Click:Connect(function()
+    selectTab("visuals")
 end)
 
 -- ==== Main page controls ====
@@ -2053,6 +2060,270 @@ task.spawn(function()
                     car:PivotTo(target.Character.HumanoidRootPart.CFrame)
                 end
             end)
+        end
+    end
+end)
+
+-- ==== Visuals page: player ESP (Drawing + Highlight) ====
+local espFlags = {}
+local function espOn(name)
+    return espFlags[name] == true
+end
+
+local visualsList = Instance.new("ScrollingFrame")
+visualsList.Name = "VisualsList"
+visualsList.Position = UDim2.new(0, 12, 0, 6)
+visualsList.Size = UDim2.new(1, -24, 1, -12)
+visualsList.BackgroundTransparency = 1
+visualsList.BorderSizePixel = 0
+visualsList.ScrollBarThickness = 4
+visualsList.CanvasSize = UDim2.new(0, 0, 0, 0)
+visualsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+visualsList.Parent = visualsPage
+
+local visualsLayout = Instance.new("UIListLayout")
+visualsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+visualsLayout.Padding = UDim.new(0, 4)
+visualsLayout.Parent = visualsList
+
+local ESP_TOGGLES = {
+    { "Enabled", "ESP Enabled" },
+    { "Boxes", "Boxes" },
+    { "Names", "Names" },
+    { "Distance", "Distance" },
+    { "Health", "Health Bar" },
+    { "Tracers", "Tracers" },
+    { "Chams", "Chams / Highlight" },
+}
+
+local visualsOrder = 0
+local function makeEspToggle(key, label)
+    visualsOrder = visualsOrder + 1
+    local btn = Instance.new("TextButton")
+    btn.Name = "ESP_" .. key
+    btn.Size = UDim2.new(1, -4, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = label .. ": OFF"
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.LayoutOrder = visualsOrder
+    btn.Parent = visualsList
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        espFlags[key] = not espFlags[key]
+        if espFlags[key] then
+            btn.Text = label .. ": ON"
+            btn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        else
+            btn.Text = label .. ": OFF"
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+        end
+    end)
+end
+
+for _, t in ipairs(ESP_TOGGLES) do
+    makeEspToggle(t[1], t[2])
+end
+
+-- Drawing-based ESP. Falls back gracefully if Drawing isn't available.
+local hasDrawing = typeof(Drawing) == "table" and typeof(Drawing.new) == "function"
+local espObjects = {}
+
+local function newDrawing(class, props)
+    local ok, obj = pcall(Drawing.new, class)
+    if not ok or not obj then
+        return nil
+    end
+    for k, v in pairs(props) do
+        pcall(function()
+            obj[k] = v
+        end)
+    end
+    return obj
+end
+
+local function createEsp(plr)
+    if not hasDrawing then
+        return nil
+    end
+    local set = {}
+    set.box = newDrawing("Square", { Thickness = 1, Filled = false, Color = Color3.fromRGB(255, 255, 255), Transparency = 1, Visible = false })
+    set.name = newDrawing("Text", { Size = 13, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255), Visible = false })
+    set.distance = newDrawing("Text", { Size = 12, Center = true, Outline = true, Color = Color3.fromRGB(220, 220, 220), Visible = false })
+    set.tracer = newDrawing("Line", { Thickness = 1, Color = Color3.fromRGB(255, 255, 255), Transparency = 1, Visible = false })
+    set.healthOutline = newDrawing("Square", { Thickness = 1, Filled = true, Color = Color3.fromRGB(0, 0, 0), Transparency = 1, Visible = false })
+    set.health = newDrawing("Square", { Thickness = 1, Filled = true, Color = Color3.fromRGB(0, 255, 0), Transparency = 1, Visible = false })
+    set.highlight = Instance.new("Highlight")
+    set.highlight.FillColor = Color3.fromRGB(255, 60, 60)
+    set.highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    set.highlight.FillTransparency = 0.5
+    set.highlight.OutlineTransparency = 0
+    set.highlight.Enabled = false
+    pcall(function()
+        set.highlight.Parent = getParent()
+    end)
+    return set
+end
+
+local function hideEsp(set)
+    if not set then
+        return
+    end
+    for key, obj in pairs(set) do
+        if key == "highlight" then
+            if obj then
+                obj.Enabled = false
+            end
+        elseif obj then
+            pcall(function()
+                obj.Visible = false
+            end)
+        end
+    end
+end
+
+local function destroyEsp(set)
+    if not set then
+        return
+    end
+    for _, obj in pairs(set) do
+        pcall(function()
+            obj:Remove()
+        end)
+        pcall(function()
+            obj:Destroy()
+        end)
+    end
+end
+
+local function updateEsp(plr, set)
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local masterOn = espOn("Enabled")
+
+    if not masterOn or not hrp or not hum or hum.Health <= 0 then
+        hideEsp(set)
+        return
+    end
+
+    -- Chams / highlight.
+    if set.highlight then
+        set.highlight.Enabled = espOn("Chams")
+        set.highlight.Adornee = espOn("Chams") and char or nil
+    end
+
+    local topPos, onScreen = Camera:WorldToViewportPoint((hrp.CFrame * CFrame.new(0, 3, 0)).Position)
+    local bottomPos = Camera:WorldToViewportPoint((hrp.CFrame * CFrame.new(0, -3.5, 0)).Position)
+
+    if not onScreen then
+        hideEsp(set)
+        return
+    end
+
+    local height = math.abs(topPos.Y - bottomPos.Y)
+    local width = height / 2
+    local boxX = topPos.X - width / 2
+    local boxY = topPos.Y
+
+    -- Box.
+    if set.box then
+        if espOn("Boxes") then
+            set.box.Size = Vector2.new(width, height)
+            set.box.Position = Vector2.new(boxX, boxY)
+            set.box.Visible = true
+        else
+            set.box.Visible = false
+        end
+    end
+
+    -- Name.
+    if set.name then
+        if espOn("Names") then
+            set.name.Text = plr.Name
+            set.name.Position = Vector2.new(topPos.X, boxY - 16)
+            set.name.Visible = true
+        else
+            set.name.Visible = false
+        end
+    end
+
+    -- Distance.
+    if set.distance then
+        if espOn("Distance") then
+            local myChar = LocalPlayer.Character
+            local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            local dist = myHrp and math.floor((myHrp.Position - hrp.Position).Magnitude) or 0
+            set.distance.Text = tostring(dist) .. "m"
+            set.distance.Position = Vector2.new(topPos.X, boxY + height + 2)
+            set.distance.Visible = true
+        else
+            set.distance.Visible = false
+        end
+    end
+
+    -- Health bar (left side of the box).
+    if set.health and set.healthOutline then
+        if espOn("Health") then
+            local ratio = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+            local barX = boxX - 5
+            set.healthOutline.Size = Vector2.new(3, height)
+            set.healthOutline.Position = Vector2.new(barX - 1, boxY - 1)
+            set.healthOutline.Visible = true
+            local barHeight = height * ratio
+            set.health.Size = Vector2.new(2, barHeight)
+            set.health.Position = Vector2.new(barX, boxY + (height - barHeight))
+            set.health.Color = Color3.fromRGB(math.floor(255 * (1 - ratio)), math.floor(255 * ratio), 0)
+            set.health.Visible = true
+        else
+            set.health.Visible = false
+            set.healthOutline.Visible = false
+        end
+    end
+
+    -- Tracer (from bottom-center of screen to the target).
+    if set.tracer then
+        if espOn("Tracers") then
+            local vp = Camera.ViewportSize
+            set.tracer.From = Vector2.new(vp.X / 2, vp.Y)
+            set.tracer.To = Vector2.new(topPos.X, boxY + height)
+            set.tracer.Visible = true
+        else
+            set.tracer.Visible = false
+        end
+    end
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    local set = espObjects[plr]
+    if set then
+        destroyEsp(set)
+        espObjects[plr] = nil
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if not hasDrawing then
+        return
+    end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local set = espObjects[plr]
+            if not set then
+                set = createEsp(plr)
+                espObjects[plr] = set
+            end
+            if set then
+                pcall(updateEsp, plr, set)
+            end
         end
     end
 end)
