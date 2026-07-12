@@ -279,7 +279,11 @@ listLayout.Parent = listFrame
 -- can't drag you back.
 local antiTeleport = false
 local lastTeleportCF = nil
-local teleportMode = "tween" -- "tween" (anticheat-friendly glide) or "cframe" (instant)
+-- Teleport method: "bypass" (Tha Bronx anticheat bypass), "tween" (glide), or
+-- "cframe" (instant).
+local teleportMode = "bypass"
+local METHOD_LABELS = { bypass = "Method: Bypass", tween = "Method: Tween", cframe = "Method: CFrame" }
+local METHOD_ORDER = { bypass = "tween", tween = "cframe", cframe = "bypass" }
 
 local methodBtn = Instance.new("TextButton")
 methodBtn.Name = "TeleportMethod"
@@ -291,7 +295,7 @@ methodBtn.AutoButtonColor = true
 methodBtn.Font = Enum.Font.GothamBold
 methodBtn.TextSize = 14
 methodBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-methodBtn.Text = "Method: Tween"
+methodBtn.Text = METHOD_LABELS[teleportMode]
 methodBtn.Parent = teleportPage
 
 local methodCorner = Instance.new("UICorner")
@@ -299,8 +303,8 @@ methodCorner.CornerRadius = UDim.new(0, 6)
 methodCorner.Parent = methodBtn
 
 methodBtn.MouseButton1Click:Connect(function()
-    teleportMode = (teleportMode == "tween") and "cframe" or "tween"
-    methodBtn.Text = (teleportMode == "tween") and "Method: Tween" or "Method: CFrame"
+    teleportMode = METHOD_ORDER[teleportMode]
+    methodBtn.Text = METHOD_LABELS[teleportMode]
 end)
 
 local antiTpBtn = Instance.new("TextButton")
@@ -357,11 +361,32 @@ local function teleportTo(cframe)
         activeTween = nil
     end
 
+    if hrp.Anchored then
+        hrp.Anchored = false
+    end
+
     if teleportMode == "cframe" then
-        if hrp.Anchored then
-            hrp.Anchored = false
-        end
         hrp.CFrame = cframe
+        return
+    end
+
+    -- Tha Bronx anticheat bypass: drop into the FallingDown state, wait for the
+    -- anticheat's LastACPos attribute to clear, then apply the CFrame and get up.
+    if teleportMode == "bypass" then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if not humanoid then
+            hrp.CFrame = cframe
+            return
+        end
+        humanoid:ChangeState(Enum.HumanoidStateType.FallingDown)
+        local num = 1
+        repeat
+            task.wait()
+            num = num + 1
+        until num >= 40 and not player:GetAttribute("LastACPos")
+        hrp.CFrame = cframe
+        task.wait()
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
         return
     end
 
