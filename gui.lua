@@ -43,6 +43,16 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+
+-- ==== Config system: register flags, then save/load them to files. ====
+local CONFIG_FOLDER = "VelocityHub"
+local flagGetters = {}
+local flagAppliers = {}
+local function regFlag(name, getter, applier)
+    flagGetters[name] = getter
+    flagAppliers[name] = applier
+end
 
 local TWEEN_SPEED = 120 -- studs/sec the tween-teleport glides at (tune vs anticheat)
 
@@ -139,6 +149,7 @@ local playerTabButton = makeTabButton("Player", 4)
 local playersTabButton = makeTabButton("Players", 5)
 local playerUtilsTabButton = makeTabButton("Player Utils", 6)
 local visualsTabButton = makeTabButton("Visuals", 7)
+local settingsTabButton = makeTabButton("Settings", 8)
 
 -- Content pages (sit below the tab bar).
 local function makePage()
@@ -157,6 +168,7 @@ local playerPage = makePage()
 local playersPage = makePage()
 local playerUtilsPage = makePage()
 local visualsPage = makePage()
+local settingsPage = makePage()
 
 local ACTIVE_TAB = Color3.fromRGB(60, 60, 72)
 local IDLE_TAB = Color3.fromRGB(36, 36, 43)
@@ -169,6 +181,7 @@ local function selectTab(which)
     playersPage.Visible = which == "players"
     playerUtilsPage.Visible = which == "playerutils"
     visualsPage.Visible = which == "visuals"
+    settingsPage.Visible = which == "settings"
     mainTabButton.BackgroundColor3 = which == "main" and ACTIVE_TAB or IDLE_TAB
     teleportTabButton.BackgroundColor3 = which == "teleports" and ACTIVE_TAB or IDLE_TAB
     autoBuyTabButton.BackgroundColor3 = which == "autobuy" and ACTIVE_TAB or IDLE_TAB
@@ -176,6 +189,7 @@ local function selectTab(which)
     playersTabButton.BackgroundColor3 = which == "players" and ACTIVE_TAB or IDLE_TAB
     playerUtilsTabButton.BackgroundColor3 = which == "playerutils" and ACTIVE_TAB or IDLE_TAB
     visualsTabButton.BackgroundColor3 = which == "visuals" and ACTIVE_TAB or IDLE_TAB
+    settingsTabButton.BackgroundColor3 = which == "settings" and ACTIVE_TAB or IDLE_TAB
 end
 
 mainTabButton.MouseButton1Click:Connect(function()
@@ -198,6 +212,9 @@ playerUtilsTabButton.MouseButton1Click:Connect(function()
 end)
 visualsTabButton.MouseButton1Click:Connect(function()
     selectTab("visuals")
+end)
+settingsTabButton.MouseButton1Click:Connect(function()
+    selectTab("settings")
 end)
 
 -- ==== Main page controls ====
@@ -392,9 +409,22 @@ local methodCorner = Instance.new("UICorner")
 methodCorner.CornerRadius = UDim.new(0, 6)
 methodCorner.Parent = methodBtn
 
-methodBtn.MouseButton1Click:Connect(function()
-    teleportMode = METHOD_ORDER[teleportMode]
+local function setTeleportMode(mode)
+    if not METHOD_LABELS[mode] then
+        return
+    end
+    teleportMode = mode
     methodBtn.Text = METHOD_LABELS[teleportMode]
+end
+
+methodBtn.MouseButton1Click:Connect(function()
+    setTeleportMode(METHOD_ORDER[teleportMode])
+end)
+
+regFlag("teleportMode", function()
+    return teleportMode
+end, function(v)
+    setTeleportMode(v)
 end)
 
 local antiTpBtn = Instance.new("TextButton")
@@ -806,14 +836,29 @@ local function startLoop()
     end)
 end
 
-toggle.MouseButton1Click:Connect(function()
-    enabled = not enabled
+local function setDupe(on)
+    on = on == true
+    if on == enabled then
+        setVisualState(enabled)
+        return
+    end
+    enabled = on
     setVisualState(enabled)
     if enabled then
         startLoop()
     else
         loopToken = loopToken + 1 -- invalidate any running loop
     end
+end
+
+toggle.MouseButton1Click:Connect(function()
+    setDupe(not enabled)
+end)
+
+regFlag("dupe", function()
+    return enabled
+end, function(v)
+    setDupe(v)
 end)
 
 -- ==== Max Money: valary's "Generate Max Illegal Money" (IceFruit dupe) ====
@@ -999,8 +1044,9 @@ end)
 
 -- Auto Drop: while ON, drop one copy whenever 2+ of the selected item are held.
 local autoDropToken = 0
-autoDropBtn.MouseButton1Click:Connect(function()
-    autoDrop = not autoDrop
+local function setAutoDrop(on)
+    on = on == true
+    autoDrop = on
     if autoDrop then
         autoDropBtn.Text = "Auto Drop: ON"
         autoDropBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
@@ -1019,6 +1065,16 @@ autoDropBtn.MouseButton1Click:Connect(function()
         autoDropBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         autoDropToken = autoDropToken + 1 -- invalidate any running loop
     end
+end
+
+autoDropBtn.MouseButton1Click:Connect(function()
+    setAutoDrop(not autoDrop)
+end)
+
+regFlag("autoDrop", function()
+    return autoDrop
+end, function(v)
+    setAutoDrop(v)
 end)
 
 -- ==== Anti Kick: block the client Kick namecall while enabled ====
@@ -1043,8 +1099,9 @@ local function setupAntiKick()
     return true
 end
 
-antiKickBtn.MouseButton1Click:Connect(function()
-    if not antiKick then
+local function setAntiKick(on)
+    on = on == true
+    if on then
         if not setupAntiKick() then
             antiKickBtn.Text = "Anti Kick: N/A"
             return
@@ -1057,6 +1114,16 @@ antiKickBtn.MouseButton1Click:Connect(function()
         antiKickBtn.Text = "Anti Kick: OFF"
         antiKickBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
     end
+end
+
+antiKickBtn.MouseButton1Click:Connect(function()
+    setAntiKick(not antiKick)
+end)
+
+regFlag("antiKick", function()
+    return antiKick
+end, function(v)
+    setAntiKick(v)
 end)
 
 -- ==== Construction Farm: valary's FarmConstructionJob ====
@@ -1133,8 +1200,9 @@ end
 
 local constructionFarm = false
 local constructionToken = 0
-constructionBtn.MouseButton1Click:Connect(function()
-    constructionFarm = not constructionFarm
+local function setConstruction(on)
+    on = on == true
+    constructionFarm = on
     if constructionFarm then
         constructionBtn.Text = "Construction Farm: ON"
         constructionBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
@@ -1151,6 +1219,16 @@ constructionBtn.MouseButton1Click:Connect(function()
         constructionBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         constructionToken = constructionToken + 1 -- invalidate any running loop
     end
+end
+
+constructionBtn.MouseButton1Click:Connect(function()
+    setConstruction(not constructionFarm)
+end)
+
+regFlag("constructionFarm", function()
+    return constructionFarm
+end, function(v)
+    setConstruction(v)
 end)
 
 -- ==== Studio Farm: valary's FarmStudio ====
@@ -1183,8 +1261,9 @@ end
 
 local studioFarm = false
 local studioToken = 0
-studioBtn.MouseButton1Click:Connect(function()
-    studioFarm = not studioFarm
+local function setStudio(on)
+    on = on == true
+    studioFarm = on
     if studioFarm then
         studioBtn.Text = "Studio Farm: ON"
         studioBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
@@ -1201,6 +1280,16 @@ studioBtn.MouseButton1Click:Connect(function()
         studioBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         studioToken = studioToken + 1 -- invalidate any running loop
     end
+end
+
+studioBtn.MouseButton1Click:Connect(function()
+    setStudio(not studioFarm)
+end)
+
+regFlag("studioFarm", function()
+    return studioFarm
+end, function(v)
+    setStudio(v)
 end)
 
 -- ==== Auto Buy page: purchase items from workspace.GUNS (valary) ====
@@ -1467,8 +1556,8 @@ local function makeModToggle(key, label, order)
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = btn
 
-    btn.MouseButton1Click:Connect(function()
-        mods[key] = not mods[key]
+    local function apply(v)
+        mods[key] = v == true
         if mods[key] then
             btn.Text = label .. ": ON"
             btn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
@@ -1476,7 +1565,15 @@ local function makeModToggle(key, label, order)
             btn.Text = label .. ": OFF"
             btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
         end
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        apply(not mods[key])
     end)
+
+    regFlag("mod:" .. key, function()
+        return mods[key] == true
+    end, apply)
 end
 
 for i, m in ipairs(PLAYER_MODS) do
@@ -1900,8 +1997,8 @@ local function makeUtilToggle(key, label)
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = btn
 
-    btn.MouseButton1Click:Connect(function()
-        putils[key] = not putils[key]
+    local function apply(v)
+        putils[key] = v == true
         if putils[key] then
             btn.Text = label .. ": ON"
             btn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
@@ -1909,7 +2006,15 @@ local function makeUtilToggle(key, label)
             btn.Text = label .. ": OFF"
             btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
         end
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        apply(not putils[key])
     end)
+
+    regFlag("putil:" .. key, function()
+        return putils[key] == true
+    end, apply)
 end
 
 local function makeUtilButton(label, callback)
@@ -2185,8 +2290,8 @@ local function makeEspToggle(key, label)
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = btn
 
-    btn.MouseButton1Click:Connect(function()
-        espFlags[key] = not espFlags[key]
+    local function apply(v)
+        espFlags[key] = v == true
         if espFlags[key] then
             btn.Text = label .. ": ON"
             btn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
@@ -2194,7 +2299,15 @@ local function makeEspToggle(key, label)
             btn.Text = label .. ": OFF"
             btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
         end
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        apply(not espFlags[key])
     end)
+
+    regFlag("esp:" .. key, function()
+        return espFlags[key] == true
+    end, apply)
 end
 
 for _, t in ipairs(ESP_TOGGLES) do
@@ -2395,6 +2508,329 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+-- ==== Register scalar selections so configs restore them too. ====
+regFlag("selectedItem", function()
+    return selectedItem
+end, function(v)
+    if v == nil or type(v) == "string" then
+        selectedItem = v
+        updateStatus()
+    end
+end)
+
+regFlag("selectedPlayer", function()
+    return selectedPlayerName
+end, function(v)
+    if v == nil or type(v) == "string" then
+        selectedPlayerName = v
+        highlightSelected()
+    end
+end)
+
+-- ==== Settings page: save / load / delete named configs ====
+local function fsHas(fn)
+    return typeof(fn) == "function"
+end
+local fileSupported = fsHas(writefile) and fsHas(readfile)
+
+local function ensureFolder()
+    if fsHas(makefolder) and fsHas(isfolder) then
+        if not isfolder(CONFIG_FOLDER) then
+            pcall(makefolder, CONFIG_FOLDER)
+        end
+    end
+end
+
+local function configPath(name)
+    return CONFIG_FOLDER .. "/" .. name .. ".json"
+end
+
+local function listConfigs()
+    local out = {}
+    if not (fsHas(listfiles) and fsHas(isfolder)) then
+        return out
+    end
+    if not isfolder(CONFIG_FOLDER) then
+        return out
+    end
+    local ok, files = pcall(listfiles, CONFIG_FOLDER)
+    if not ok or type(files) ~= "table" then
+        return out
+    end
+    for _, path in ipairs(files) do
+        local name = tostring(path):match("([^/\\]+)%.json$")
+        if name then
+            table.insert(out, name)
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+local function collectConfig()
+    local data = {}
+    for name, getter in pairs(flagGetters) do
+        local ok, value = pcall(getter)
+        if ok then
+            data[name] = value
+        end
+    end
+    return data
+end
+
+local function applyConfig(data)
+    if type(data) ~= "table" then
+        return
+    end
+    for name, value in pairs(data) do
+        local applier = flagAppliers[name]
+        if applier then
+            pcall(applier, value)
+        end
+    end
+end
+
+local settingsTitle = Instance.new("TextLabel")
+settingsTitle.Name = "SettingsTitle"
+settingsTitle.BackgroundTransparency = 1
+settingsTitle.Position = UDim2.new(0, 12, 0, 6)
+settingsTitle.Size = UDim2.new(1, -24, 0, 20)
+settingsTitle.Font = Enum.Font.Gotham
+settingsTitle.TextSize = 13
+settingsTitle.TextColor3 = Color3.fromRGB(200, 200, 210)
+settingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+settingsTitle.Text = fileSupported and "Config name:" or "File API unavailable in this executor."
+settingsTitle.Parent = settingsPage
+
+local nameBox = Instance.new("TextBox")
+nameBox.Name = "ConfigName"
+nameBox.Position = UDim2.new(0, 12, 0, 30)
+nameBox.Size = UDim2.new(1, -24, 0, 30)
+nameBox.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+nameBox.BorderSizePixel = 0
+nameBox.Font = Enum.Font.Gotham
+nameBox.TextSize = 13
+nameBox.TextColor3 = Color3.fromRGB(230, 230, 235)
+nameBox.PlaceholderText = "config name"
+nameBox.Text = "default"
+nameBox.ClearTextOnFocus = false
+nameBox.Parent = settingsPage
+
+local nameBoxCorner = Instance.new("UICorner")
+nameBoxCorner.CornerRadius = UDim.new(0, 6)
+nameBoxCorner.Parent = nameBox
+
+local settingsStatus = Instance.new("TextLabel")
+settingsStatus.Name = "SettingsStatus"
+settingsStatus.BackgroundTransparency = 1
+settingsStatus.Position = UDim2.new(0, 12, 0, 64)
+settingsStatus.Size = UDim2.new(1, -24, 0, 18)
+settingsStatus.Font = Enum.Font.Gotham
+settingsStatus.TextSize = 12
+settingsStatus.TextColor3 = Color3.fromRGB(160, 200, 170)
+settingsStatus.TextXAlignment = Enum.TextXAlignment.Left
+settingsStatus.Text = ""
+settingsStatus.Parent = settingsPage
+
+local function sanitizeName(name)
+    name = (name or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" then
+        return nil
+    end
+    return (name:gsub("[^%w%-_ ]", ""))
+end
+
+local configList -- forward ref for the scroll list
+
+local function makeSettingsButton(text, yOffset, color, cb)
+    local btn = Instance.new("TextButton")
+    btn.Name = "Settings_" .. text
+    btn.Position = UDim2.new(0, 12, 0, yOffset)
+    btn.Size = UDim2.new(0.5, -16, 0, 32)
+    btn.BackgroundColor3 = color
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(240, 240, 245)
+    btn.Text = text
+    btn.Parent = settingsPage
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = btn
+    btn.MouseButton1Click:Connect(cb)
+    return btn
+end
+
+local function refreshConfigList()
+    if not configList then
+        return
+    end
+    for _, ch in ipairs(configList:GetChildren()) do
+        if ch:IsA("TextButton") then
+            ch:Destroy()
+        end
+    end
+    local names = listConfigs()
+    local order = 0
+    for _, name in ipairs(names) do
+        order = order + 1
+        local row = Instance.new("TextButton")
+        row.Name = "Cfg_" .. name
+        row.Size = UDim2.new(1, -4, 0, 28)
+        row.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+        row.BorderSizePixel = 0
+        row.AutoButtonColor = true
+        row.Font = Enum.Font.Gotham
+        row.TextSize = 13
+        row.TextColor3 = Color3.fromRGB(230, 230, 235)
+        row.Text = name
+        row.TextTruncate = Enum.TextTruncate.AtEnd
+        row.LayoutOrder = order
+        row.Parent = configList
+        local rc = Instance.new("UICorner")
+        rc.CornerRadius = UDim.new(0, 6)
+        rc.Parent = row
+        row.MouseButton1Click:Connect(function()
+            nameBox.Text = name
+        end)
+    end
+end
+
+local saveBtn = makeSettingsButton("Save", 90, Color3.fromRGB(46, 120, 70), function()
+    if not fileSupported then
+        settingsStatus.Text = "No file API in this executor."
+        return
+    end
+    local name = sanitizeName(nameBox.Text)
+    if not name then
+        settingsStatus.Text = "Enter a config name."
+        return
+    end
+    ensureFolder()
+    local ok, encoded = pcall(function()
+        return HttpService:JSONEncode(collectConfig())
+    end)
+    if not ok then
+        settingsStatus.Text = "Encode failed."
+        return
+    end
+    local wok = pcall(writefile, configPath(name), encoded)
+    settingsStatus.Text = wok and ("Saved '" .. name .. "'.") or "Save failed."
+    refreshConfigList()
+end)
+
+local loadBtn = Instance.new("TextButton")
+loadBtn.Name = "Settings_Load"
+loadBtn.Position = UDim2.new(0.5, 4, 0, 90)
+loadBtn.Size = UDim2.new(0.5, -16, 0, 32)
+loadBtn.BackgroundColor3 = Color3.fromRGB(60, 90, 140)
+loadBtn.BorderSizePixel = 0
+loadBtn.AutoButtonColor = true
+loadBtn.Font = Enum.Font.GothamBold
+loadBtn.TextSize = 13
+loadBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+loadBtn.Text = "Load"
+loadBtn.Parent = settingsPage
+local loadCorner = Instance.new("UICorner")
+loadCorner.CornerRadius = UDim.new(0, 6)
+loadCorner.Parent = loadBtn
+loadBtn.MouseButton1Click:Connect(function()
+    if not fileSupported then
+        settingsStatus.Text = "No file API in this executor."
+        return
+    end
+    local name = sanitizeName(nameBox.Text)
+    if not name then
+        settingsStatus.Text = "Enter a config name."
+        return
+    end
+    if fsHas(isfile) and not isfile(configPath(name)) then
+        settingsStatus.Text = "'" .. name .. "' not found."
+        return
+    end
+    local ok, raw = pcall(readfile, configPath(name))
+    if not ok then
+        settingsStatus.Text = "Read failed."
+        return
+    end
+    local dok, data = pcall(function()
+        return HttpService:JSONDecode(raw)
+    end)
+    if not dok then
+        settingsStatus.Text = "Decode failed."
+        return
+    end
+    applyConfig(data)
+    settingsStatus.Text = "Loaded '" .. name .. "'."
+end)
+
+local deleteBtn = makeSettingsButton("Delete", 128, Color3.fromRGB(150, 60, 60), function()
+    if not (fileSupported and fsHas(delfile)) then
+        settingsStatus.Text = "Delete not supported."
+        return
+    end
+    local name = sanitizeName(nameBox.Text)
+    if not name then
+        settingsStatus.Text = "Enter a config name."
+        return
+    end
+    if fsHas(isfile) and not isfile(configPath(name)) then
+        settingsStatus.Text = "'" .. name .. "' not found."
+        return
+    end
+    local ok = pcall(delfile, configPath(name))
+    settingsStatus.Text = ok and ("Deleted '" .. name .. "'.") or "Delete failed."
+    refreshConfigList()
+end)
+
+local listRefreshBtn = Instance.new("TextButton")
+listRefreshBtn.Name = "Settings_ListRefresh"
+listRefreshBtn.Position = UDim2.new(0.5, 4, 0, 128)
+listRefreshBtn.Size = UDim2.new(0.5, -16, 0, 32)
+listRefreshBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+listRefreshBtn.BorderSizePixel = 0
+listRefreshBtn.AutoButtonColor = true
+listRefreshBtn.Font = Enum.Font.GothamBold
+listRefreshBtn.TextSize = 13
+listRefreshBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+listRefreshBtn.Text = "Refresh List"
+listRefreshBtn.Parent = settingsPage
+local listRefreshCorner = Instance.new("UICorner")
+listRefreshCorner.CornerRadius = UDim.new(0, 6)
+listRefreshCorner.Parent = listRefreshBtn
+
+local savedLabel = Instance.new("TextLabel")
+savedLabel.Name = "SavedLabel"
+savedLabel.BackgroundTransparency = 1
+savedLabel.Position = UDim2.new(0, 12, 0, 166)
+savedLabel.Size = UDim2.new(1, -24, 0, 18)
+savedLabel.Font = Enum.Font.Gotham
+savedLabel.TextSize = 12
+savedLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+savedLabel.TextXAlignment = Enum.TextXAlignment.Left
+savedLabel.Text = "Saved configs (click to pick):"
+savedLabel.Parent = settingsPage
+
+configList = Instance.new("ScrollingFrame")
+configList.Name = "ConfigList"
+configList.Position = UDim2.new(0, 12, 0, 188)
+configList.Size = UDim2.new(1, -24, 1, -194)
+configList.BackgroundTransparency = 1
+configList.BorderSizePixel = 0
+configList.ScrollBarThickness = 4
+configList.CanvasSize = UDim2.new(0, 0, 0, 0)
+configList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+configList.Parent = settingsPage
+
+local configListLayout = Instance.new("UIListLayout")
+configListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+configListLayout.Padding = UDim.new(0, 4)
+configListLayout.Parent = configList
+
+listRefreshBtn.MouseButton1Click:Connect(refreshConfigList)
+refreshConfigList()
 
 selectTab("main")
 print("[Velocity Hub] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
