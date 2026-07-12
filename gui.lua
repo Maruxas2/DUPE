@@ -781,11 +781,11 @@ for i, entry in ipairs(TELEPORTS) do
 end
 teleportList.CanvasSize = UDim2.new(0, 0, 0, #TELEPORTS * 34)
 
--- Dragging (mouse + touch) via the title bar.
+-- Dragging (mouse + touch) via the phone header (status bar + title bar).
 local dragging = false
 local dragStart, startPos
 
-titleBar.InputBegan:Connect(function(input)
+local function beginDrag(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
@@ -797,7 +797,12 @@ titleBar.InputBegan:Connect(function(input)
             end
         end)
     end
-end)
+end
+
+statusStrip.Active = true
+titleBar.Active = true
+statusStrip.InputBegan:Connect(beginDrag)
+titleBar.InputBegan:Connect(beginDrag)
 
 UserInputService.InputChanged:Connect(function(input)
     if dragging
@@ -1903,7 +1908,7 @@ local function updateHideName()
             lbl.Font = Enum.Font.GothamBold
             lbl.TextScaled = true
             lbl.TextColor3 = Color3.fromRGB(170, 90, 255)
-            lbl.Text = "Galaxy S26"
+            lbl.Text = "Galaxy S26 Runs scripting"
             lbl.Parent = galaxyTag
         end
         galaxyTag.Enabled = true
