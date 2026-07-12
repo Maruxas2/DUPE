@@ -72,7 +72,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(280, 320)
+main.Size = UDim2.fromOffset(280, 366)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -180,7 +180,7 @@ local toggle = Instance.new("TextButton")
 toggle.Name = "Toggle"
 toggle.AnchorPoint = Vector2.new(0.5, 1)
 toggle.Position = UDim2.new(0.5, 0, 1, -12)
-toggle.Size = UDim2.new(1, -24, 0, 40)
+toggle.Size = UDim2.new(1, -24, 0, 42)
 toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 toggle.BorderSizePixel = 0
 toggle.AutoButtonColor = true
@@ -197,8 +197,8 @@ toggleCorner.Parent = toggle
 local maxMoney = Instance.new("TextButton")
 maxMoney.Name = "MaxMoney"
 maxMoney.AnchorPoint = Vector2.new(0.5, 1)
-maxMoney.Position = UDim2.new(0.5, 0, 1, -58)
-maxMoney.Size = UDim2.new(1, -24, 0, 38)
+maxMoney.Position = UDim2.new(0.5, 0, 1, -62)
+maxMoney.Size = UDim2.new(1, -24, 0, 40)
 maxMoney.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
 maxMoney.BorderSizePixel = 0
 maxMoney.AutoButtonColor = true
@@ -215,8 +215,8 @@ maxMoneyCorner.Parent = maxMoney
 local autoDropBtn = Instance.new("TextButton")
 autoDropBtn.Name = "AutoDrop"
 autoDropBtn.AnchorPoint = Vector2.new(0.5, 1)
-autoDropBtn.Position = UDim2.new(0.5, 0, 1, -102)
-autoDropBtn.Size = UDim2.new(1, -24, 0, 38)
+autoDropBtn.Position = UDim2.new(0.5, 0, 1, -112)
+autoDropBtn.Size = UDim2.new(1, -24, 0, 40)
 autoDropBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 autoDropBtn.BorderSizePixel = 0
 autoDropBtn.AutoButtonColor = true
@@ -322,8 +322,8 @@ local function teleportTo(cframe)
     end
 end
 
--- While the bypass is on, re-assert the last teleport position if the game
--- moves us away from it.
+-- While the bypass is on, hard-lock the player to the last teleport position
+-- every frame so the game can't drag us back.
 RunService.Heartbeat:Connect(function()
     if not antiTeleport or not lastTeleportCF then
         return
@@ -331,8 +331,9 @@ RunService.Heartbeat:Connect(function()
     local player = Players.LocalPlayer
     local char = player and player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp and (hrp.Position - lastTeleportCF.Position).Magnitude > 8 then
+    if hrp then
         hrp.CFrame = lastTeleportCF
+        hrp.AssemblyLinearVelocity = Vector3.zero
     end
 end)
 
