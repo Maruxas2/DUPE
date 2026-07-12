@@ -2384,6 +2384,61 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- ---- RGB Gun: rainbow-cycle the equipped tool's colors ----
+local rgbEnabled = false
+local rgbBtn = Instance.new("TextButton")
+rgbBtn.Name = "Gun_RGB"
+rgbBtn.Size = UDim2.new(1, -4, 0, 30)
+rgbBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+rgbBtn.BorderSizePixel = 0
+rgbBtn.AutoButtonColor = true
+rgbBtn.Font = Enum.Font.Gotham
+rgbBtn.TextSize = 13
+rgbBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+rgbBtn.Text = "RGB Gun: OFF"
+rgbBtn.TextTruncate = Enum.TextTruncate.AtEnd
+rgbBtn.LayoutOrder = #GUN_MODS + 2
+rgbBtn.Parent = gunList
+roundCorner(rgbBtn, UDim.new(0, 6))
+
+local function setRGB(v)
+    rgbEnabled = v == true
+    if rgbEnabled then
+        rgbBtn.Text = "RGB Gun: ON"
+        rgbBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        rgbBtn.Text = "RGB Gun: OFF"
+        rgbBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end
+
+rgbBtn.MouseButton1Click:Connect(function()
+    setRGB(not rgbEnabled)
+end)
+
+regFlag("gun:RGB", function()
+    return rgbEnabled
+end, setRGB)
+
+local rgbGunHue = 0
+RunService.RenderStepped:Connect(function()
+    if not rgbEnabled then
+        return
+    end
+    local char = LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    if not tool then
+        return
+    end
+    rgbGunHue = (rgbGunHue + 0.01) % 1
+    local col = Color3.fromHSV(rgbGunHue, 1, 1)
+    for _, obj in ipairs(tool:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Color = col
+        end
+    end
+end)
+
 -- Re-apply mods whenever a tool is equipped or added.
 local function hookChar(char)
     char.ChildAdded:Connect(function(v)
