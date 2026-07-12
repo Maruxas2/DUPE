@@ -81,7 +81,7 @@ local function getParent()
 end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "yallareass"
+screenGui.Name = "GalaxyS26"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.IgnoreGuiInset = true
@@ -220,7 +220,7 @@ titleBar.Position = UDim2.new(0, 0, 0, 28)
 titleBar.Size = UDim2.new(1, 0, 0, 34)
 titleBar.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
 titleBar.BorderSizePixel = 0
-titleBar.Text = "yall are ass.gg"
+titleBar.Text = "Galaxy S26"
 titleBar.Font = Enum.Font.GothamBold
 titleBar.TextSize = 16
 titleBar.TextColor3 = Color3.fromRGB(235, 235, 240)
@@ -1796,6 +1796,7 @@ local PLAYER_MODS = {
     { "DisableCameraBobbing", "Disable Camera Bobbing" },
     { "DisableBloodEffects", "Disable Blood Effects" },
     { "DisableCameras", "Disable Cameras" },
+    { "RGBGun", "RGB Gun" },
 }
 
 local playerTitle = Instance.new("TextLabel")
@@ -1870,6 +1871,29 @@ for i, m in ipairs(PLAYER_MODS) do
 end
 
 -- ---- Effect handlers (ported from valary) ----
+-- RGB Gun: rainbow-cycle the colors of the currently equipped tool.
+local rgbHue = 0
+RunService.RenderStepped:Connect(function()
+    if not modOn("RGBGun") then
+        return
+    end
+    local char = LocalPlayer.Character
+    if not char then
+        return
+    end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then
+        return
+    end
+    rgbHue = (rgbHue + 0.01) % 1
+    local col = Color3.fromHSV(rgbHue, 1, 1)
+    for _, obj in ipairs(tool:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Color = col
+        end
+    end
+end)
+
 local deathFrame
 
 local function hookKnockback(container)
@@ -3208,4 +3232,4 @@ refreshConfigList()
 end
 
 selectTab("main")
-print("[yall are ass.gg] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
+print("[Galaxy S26] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
