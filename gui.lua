@@ -85,7 +85,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(280, 500)
+main.Size = UDim2.fromOffset(280, 548)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -339,6 +339,24 @@ studioBtn.Parent = mainPage
 local studioCorner = Instance.new("UICorner")
 studioCorner.CornerRadius = UDim.new(0, 6)
 studioCorner.Parent = studioBtn
+
+local cleanMoneyBtn = Instance.new("TextButton")
+cleanMoneyBtn.Name = "CleanMoney"
+cleanMoneyBtn.AnchorPoint = Vector2.new(0.5, 1)
+cleanMoneyBtn.Position = UDim2.new(0.5, 0, 1, -300)
+cleanMoneyBtn.Size = UDim2.new(1, -24, 0, 40)
+cleanMoneyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+cleanMoneyBtn.BorderSizePixel = 0
+cleanMoneyBtn.AutoButtonColor = true
+cleanMoneyBtn.Font = Enum.Font.GothamBold
+cleanMoneyBtn.TextSize = 14
+cleanMoneyBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+cleanMoneyBtn.Text = "Clean All Filthy Money"
+cleanMoneyBtn.Parent = mainPage
+
+local cleanMoneyCorner = Instance.new("UICorner")
+cleanMoneyCorner.CornerRadius = UDim.new(0, 6)
+cleanMoneyCorner.Parent = cleanMoneyBtn
 
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
@@ -1290,6 +1308,107 @@ regFlag("studioFarm", function()
     return studioFarm
 end, function(v)
     setStudio(v)
+end)
+
+-- ==== Clean All Filthy Money: valary's manual cleaner farm ====
+local function getGoodCleaner()
+    local map = workspace:FindFirstChild("1# Map")
+    if not map then
+        return nil
+    end
+    local counterInstance
+    for _, v in ipairs(map:GetChildren()) do
+        if v:FindFirstChild("CounterM") then
+            counterInstance = v
+        end
+    end
+    if not counterInstance then
+        return nil
+    end
+    for _, v in ipairs(counterInstance:GetChildren()) do
+        local cashPrompt = v:FindFirstChild("CashPrompt", true)
+        local grabPrompt = v:FindFirstChild("GrabPrompt", true)
+        if cashPrompt and cashPrompt.Enabled and cashPrompt.ObjectText == "Count Bread"
+            and grabPrompt and not grabPrompt.Enabled then
+            return v
+        end
+    end
+    return nil
+end
+
+local function cleanFilthyMoney()
+    local player = Players.LocalPlayer
+    local stored = player:FindFirstChild("stored")
+    local filthy = stored and stored:FindFirstChild("FilthyStack")
+    if not filthy or filthy.Value == 0 then
+        return
+    end
+
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp or not hum or hum.Health == 0 then
+        return
+    end
+
+    local cleaner = getGoodCleaner()
+    if not cleaner then
+        return
+    end
+
+    teleportTo(cleaner.WorldPivot)
+    task.wait(0.4)
+    fireProx(cleaner:FindFirstChild("CashPrompt", true))
+
+    repeat
+        task.wait()
+    until cleaner:FindFirstChild("On", true) and cleaner:FindFirstChild("On", true).Color == Color3.fromRGB(74, 156, 69)
+
+    task.wait(0.5)
+    fireProx(cleaner:FindFirstChild("CashPrompt", true))
+    task.wait(0.25)
+    teleportTo(cleaner.WorldPivot)
+    task.wait(0.4)
+
+    local backpack = player:FindFirstChildOfClass("Backpack")
+    repeat
+        task.wait()
+    until backpack and backpack:FindFirstChild("MoneyReady")
+
+    hum:EquipTool(backpack:FindFirstChild("MoneyReady"))
+
+    repeat
+        task.wait(1)
+        fireProx(cleaner:FindFirstChild("GrabPrompt", true))
+    until not char:FindFirstChild("MoneyReady")
+
+    repeat
+        task.wait()
+    until backpack:FindFirstChild("BagOfMoney")
+
+    teleportTo(CFrame.new(-222, 284, -1201))
+    task.wait(0.4)
+    hum:EquipTool(backpack:FindFirstChild("BagOfMoney"))
+    task.wait(1)
+
+    local atm = workspace:FindFirstChild("ATMMoney")
+    if atm and atm:FindFirstChild("Prompt") then
+        fireProx(atm.Prompt)
+    end
+end
+
+local cleanMoneyRunning = false
+cleanMoneyBtn.MouseButton1Click:Connect(function()
+    if cleanMoneyRunning then
+        return
+    end
+    cleanMoneyRunning = true
+    cleanMoneyBtn.Text = "Cleaning..."
+    task.spawn(function()
+        pcall(cleanFilthyMoney)
+        cleanMoneyRunning = false
+        cleanMoneyBtn.Text = "Clean All Filthy Money"
+    end)
 end)
 
 -- ==== Auto Buy page: purchase items from workspace.GUNS (valary) ====
