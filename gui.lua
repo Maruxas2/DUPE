@@ -85,7 +85,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(280, 548)
+main.Size = UDim2.fromOffset(280, 470)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -218,11 +218,34 @@ settingsTabButton.MouseButton1Click:Connect(function()
 end)
 
 -- ==== Main page controls ====
+-- Scrollable container so every control is reachable on any screen size.
+local mainScroll = Instance.new("ScrollingFrame")
+mainScroll.Name = "MainScroll"
+mainScroll.Position = UDim2.new(0, 0, 0, 0)
+mainScroll.Size = UDim2.new(1, 0, 1, 0)
+mainScroll.BackgroundTransparency = 1
+mainScroll.BorderSizePixel = 0
+mainScroll.ScrollBarThickness = 4
+mainScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+mainScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+mainScroll.Parent = mainPage
+
+local mainScrollLayout = Instance.new("UIListLayout")
+mainScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+mainScrollLayout.Padding = UDim.new(0, 6)
+mainScrollLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+mainScrollLayout.Parent = mainScroll
+
+local mainScrollPad = Instance.new("UIPadding")
+mainScrollPad.PaddingTop = UDim.new(0, 8)
+mainScrollPad.PaddingBottom = UDim.new(0, 8)
+mainScrollPad.Parent = mainScroll
+
 local status = Instance.new("TextLabel")
 status.Name = "Status"
 status.BackgroundTransparency = 1
-status.Position = UDim2.new(0, 12, 0, 46)
-status.Size = UDim2.new(1, -24, 0, 48)
+status.Size = UDim2.new(1, -16, 0, 36)
+status.LayoutOrder = 3
 status.Font = Enum.Font.Gotham
 status.TextSize = 14
 status.TextColor3 = Color3.fromRGB(200, 200, 210)
@@ -230,13 +253,12 @@ status.TextWrapped = true
 status.TextXAlignment = Enum.TextXAlignment.Left
 status.TextYAlignment = Enum.TextYAlignment.Top
 status.Text = "Status: OFF\nItem: none"
-status.Parent = mainPage
+status.Parent = mainScroll
 
 local toggle = Instance.new("TextButton")
 toggle.Name = "Toggle"
-toggle.AnchorPoint = Vector2.new(0.5, 1)
-toggle.Position = UDim2.new(0.5, 0, 1, -12)
-toggle.Size = UDim2.new(1, -24, 0, 42)
+toggle.Size = UDim2.new(1, -16, 0, 42)
+toggle.LayoutOrder = 4
 toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 toggle.BorderSizePixel = 0
 toggle.AutoButtonColor = true
@@ -244,7 +266,7 @@ toggle.Font = Enum.Font.GothamBold
 toggle.TextSize = 16
 toggle.TextColor3 = Color3.fromRGB(240, 240, 245)
 toggle.Text = "Start Dupe"
-toggle.Parent = mainPage
+toggle.Parent = mainScroll
 
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
@@ -252,9 +274,8 @@ toggleCorner.Parent = toggle
 
 local maxMoney = Instance.new("TextButton")
 maxMoney.Name = "MaxMoney"
-maxMoney.AnchorPoint = Vector2.new(0.5, 1)
-maxMoney.Position = UDim2.new(0.5, 0, 1, -60)
-maxMoney.Size = UDim2.new(1, -24, 0, 40)
+maxMoney.Size = UDim2.new(1, -16, 0, 40)
+maxMoney.LayoutOrder = 5
 maxMoney.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
 maxMoney.BorderSizePixel = 0
 maxMoney.AutoButtonColor = true
@@ -262,7 +283,7 @@ maxMoney.Font = Enum.Font.GothamBold
 maxMoney.TextSize = 15
 maxMoney.TextColor3 = Color3.fromRGB(240, 245, 240)
 maxMoney.Text = "Max Money"
-maxMoney.Parent = mainPage
+maxMoney.Parent = mainScroll
 
 local maxMoneyCorner = Instance.new("UICorner")
 maxMoneyCorner.CornerRadius = UDim.new(0, 6)
@@ -270,9 +291,8 @@ maxMoneyCorner.Parent = maxMoney
 
 local autoDropBtn = Instance.new("TextButton")
 autoDropBtn.Name = "AutoDrop"
-autoDropBtn.AnchorPoint = Vector2.new(0.5, 1)
-autoDropBtn.Position = UDim2.new(0.5, 0, 1, -108)
-autoDropBtn.Size = UDim2.new(1, -24, 0, 40)
+autoDropBtn.Size = UDim2.new(1, -16, 0, 40)
+autoDropBtn.LayoutOrder = 7
 autoDropBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 autoDropBtn.BorderSizePixel = 0
 autoDropBtn.AutoButtonColor = true
@@ -280,7 +300,7 @@ autoDropBtn.Font = Enum.Font.GothamBold
 autoDropBtn.TextSize = 14
 autoDropBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 autoDropBtn.Text = "Auto Drop: OFF"
-autoDropBtn.Parent = mainPage
+autoDropBtn.Parent = mainScroll
 
 local autoDropCorner = Instance.new("UICorner")
 autoDropCorner.CornerRadius = UDim.new(0, 6)
@@ -288,9 +308,8 @@ autoDropCorner.Parent = autoDropBtn
 
 local antiKickBtn = Instance.new("TextButton")
 antiKickBtn.Name = "AntiKick"
-antiKickBtn.AnchorPoint = Vector2.new(0.5, 1)
-antiKickBtn.Position = UDim2.new(0.5, 0, 1, -156)
-antiKickBtn.Size = UDim2.new(1, -24, 0, 40)
+antiKickBtn.Size = UDim2.new(1, -16, 0, 40)
+antiKickBtn.LayoutOrder = 8
 antiKickBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 antiKickBtn.BorderSizePixel = 0
 antiKickBtn.AutoButtonColor = true
@@ -298,7 +317,7 @@ antiKickBtn.Font = Enum.Font.GothamBold
 antiKickBtn.TextSize = 14
 antiKickBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 antiKickBtn.Text = "Anti Kick: OFF"
-antiKickBtn.Parent = mainPage
+antiKickBtn.Parent = mainScroll
 
 local antiKickCorner = Instance.new("UICorner")
 antiKickCorner.CornerRadius = UDim.new(0, 6)
@@ -306,9 +325,8 @@ antiKickCorner.Parent = antiKickBtn
 
 local constructionBtn = Instance.new("TextButton")
 constructionBtn.Name = "ConstructionFarm"
-constructionBtn.AnchorPoint = Vector2.new(0.5, 1)
-constructionBtn.Position = UDim2.new(0.5, 0, 1, -204)
-constructionBtn.Size = UDim2.new(1, -24, 0, 40)
+constructionBtn.Size = UDim2.new(1, -16, 0, 40)
+constructionBtn.LayoutOrder = 9
 constructionBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 constructionBtn.BorderSizePixel = 0
 constructionBtn.AutoButtonColor = true
@@ -316,7 +334,7 @@ constructionBtn.Font = Enum.Font.GothamBold
 constructionBtn.TextSize = 14
 constructionBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 constructionBtn.Text = "Construction Farm: OFF"
-constructionBtn.Parent = mainPage
+constructionBtn.Parent = mainScroll
 
 local constructionCorner = Instance.new("UICorner")
 constructionCorner.CornerRadius = UDim.new(0, 6)
@@ -324,9 +342,8 @@ constructionCorner.Parent = constructionBtn
 
 local studioBtn = Instance.new("TextButton")
 studioBtn.Name = "StudioFarm"
-studioBtn.AnchorPoint = Vector2.new(0.5, 1)
-studioBtn.Position = UDim2.new(0.5, 0, 1, -252)
-studioBtn.Size = UDim2.new(1, -24, 0, 40)
+studioBtn.Size = UDim2.new(1, -16, 0, 40)
+studioBtn.LayoutOrder = 10
 studioBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 studioBtn.BorderSizePixel = 0
 studioBtn.AutoButtonColor = true
@@ -334,7 +351,7 @@ studioBtn.Font = Enum.Font.GothamBold
 studioBtn.TextSize = 14
 studioBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 studioBtn.Text = "Studio Farm: OFF"
-studioBtn.Parent = mainPage
+studioBtn.Parent = mainScroll
 
 local studioCorner = Instance.new("UICorner")
 studioCorner.CornerRadius = UDim.new(0, 6)
@@ -342,9 +359,8 @@ studioCorner.Parent = studioBtn
 
 local cleanMoneyBtn = Instance.new("TextButton")
 cleanMoneyBtn.Name = "CleanMoney"
-cleanMoneyBtn.AnchorPoint = Vector2.new(0.5, 1)
-cleanMoneyBtn.Position = UDim2.new(0.5, 0, 1, -300)
-cleanMoneyBtn.Size = UDim2.new(1, -24, 0, 40)
+cleanMoneyBtn.Size = UDim2.new(1, -16, 0, 40)
+cleanMoneyBtn.LayoutOrder = 6
 cleanMoneyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 cleanMoneyBtn.BorderSizePixel = 0
 cleanMoneyBtn.AutoButtonColor = true
@@ -352,7 +368,7 @@ cleanMoneyBtn.Font = Enum.Font.GothamBold
 cleanMoneyBtn.TextSize = 14
 cleanMoneyBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 cleanMoneyBtn.Text = "Clean All Filthy Money"
-cleanMoneyBtn.Parent = mainPage
+cleanMoneyBtn.Parent = mainScroll
 
 local cleanMoneyCorner = Instance.new("UICorner")
 cleanMoneyCorner.CornerRadius = UDim.new(0, 6)
@@ -361,9 +377,8 @@ cleanMoneyCorner.Parent = cleanMoneyBtn
 -- Inventory dropdown: pick which Tool to auto-dupe.
 local selector = Instance.new("TextButton")
 selector.Name = "ItemSelector"
-selector.AnchorPoint = Vector2.new(0.5, 0)
-selector.Position = UDim2.new(0.5, 0, 0, 4)
-selector.Size = UDim2.new(1, -24, 0, 30)
+selector.Size = UDim2.new(1, -16, 0, 30)
+selector.LayoutOrder = 1
 selector.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
 selector.BorderSizePixel = 0
 selector.AutoButtonColor = true
@@ -371,7 +386,7 @@ selector.Font = Enum.Font.Gotham
 selector.TextSize = 14
 selector.TextColor3 = Color3.fromRGB(230, 230, 235)
 selector.Text = "Select item ▼"
-selector.Parent = mainPage
+selector.Parent = mainScroll
 
 local selectorCorner = Instance.new("UICorner")
 selectorCorner.CornerRadius = UDim.new(0, 6)
@@ -379,16 +394,15 @@ selectorCorner.Parent = selector
 
 local listFrame = Instance.new("ScrollingFrame")
 listFrame.Name = "ItemList"
-listFrame.AnchorPoint = Vector2.new(0.5, 0)
-listFrame.Position = UDim2.new(0.5, 0, 0, 36)
-listFrame.Size = UDim2.new(1, -24, 0, 120)
+listFrame.Size = UDim2.new(1, -16, 0, 0)
+listFrame.LayoutOrder = 2
 listFrame.BackgroundColor3 = Color3.fromRGB(38, 38, 45)
 listFrame.BorderSizePixel = 0
 listFrame.Visible = false
 listFrame.ZIndex = 10
 listFrame.ScrollBarThickness = 4
 listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-listFrame.Parent = mainPage
+listFrame.Parent = mainScroll
 
 local listCorner = Instance.new("UICorner")
 listCorner.CornerRadius = UDim.new(0, 6)
@@ -763,6 +777,7 @@ end
 -- Dropdown open/close + population.
 local function closeList()
     listFrame.Visible = false
+    listFrame.Size = UDim2.new(1, -16, 0, 0)
     selector.Text = (selectedItem and ("Item: " .. selectedItem) or "Select item")
         .. " ▼"
 end
@@ -813,6 +828,7 @@ local function refreshList()
         count = 1
     end
     listFrame.CanvasSize = UDim2.new(0, 0, 0, count * 28)
+    listFrame.Size = UDim2.new(1, -16, 0, math.min(count * 28, 120))
 end
 
 selector.MouseButton1Click:Connect(function()
