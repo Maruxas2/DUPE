@@ -121,8 +121,8 @@ task.spawn(function()
     end
 end)
 
--- Phone body: big rounded corners + dark bezel stroke.
-roundCorner(main, UDim.new(0, 34))
+-- Phone body: rounded corners + dark bezel stroke.
+roundCorner(main, UDim.new(0, 20))
 
 local bezel = Instance.new("UIStroke")
 bezel.Thickness = 4
@@ -139,7 +139,7 @@ statusStrip.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
 statusStrip.BorderSizePixel = 0
 statusStrip.Parent = main
 
-roundCorner(statusStrip, UDim.new(0, 30))
+roundCorner(statusStrip, UDim.new(0, 20))
 
 -- Square off the bottom of the status strip so only the top follows the body.
 local statusStripFill = Instance.new("Frame")
@@ -270,8 +270,8 @@ local settingsTabButton = makeTabButton("Settings", 8)
 -- Content pages (sit below the tab bar).
 local function makePage()
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -16, 1, -160)
-    page.Position = UDim2.new(0, 8, 0, 148)
+    page.Size = UDim2.new(1, -20, 1, -178)
+    page.Position = UDim2.new(0, 10, 0, 150)
     page.BackgroundTransparency = 1
     page.Parent = main
     return page
