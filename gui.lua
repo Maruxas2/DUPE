@@ -279,10 +279,33 @@ listLayout.Parent = listFrame
 -- can't drag you back.
 local antiTeleport = false
 local lastTeleportCF = nil
+local teleportMode = "tween" -- "tween" (anticheat-friendly glide) or "cframe" (instant)
+
+local methodBtn = Instance.new("TextButton")
+methodBtn.Name = "TeleportMethod"
+methodBtn.Position = UDim2.new(0, 12, 0, 6)
+methodBtn.Size = UDim2.new(1, -24, 0, 32)
+methodBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+methodBtn.BorderSizePixel = 0
+methodBtn.AutoButtonColor = true
+methodBtn.Font = Enum.Font.GothamBold
+methodBtn.TextSize = 14
+methodBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+methodBtn.Text = "Method: Tween"
+methodBtn.Parent = teleportPage
+
+local methodCorner = Instance.new("UICorner")
+methodCorner.CornerRadius = UDim.new(0, 6)
+methodCorner.Parent = methodBtn
+
+methodBtn.MouseButton1Click:Connect(function()
+    teleportMode = (teleportMode == "tween") and "cframe" or "tween"
+    methodBtn.Text = (teleportMode == "tween") and "Method: Tween" or "Method: CFrame"
+end)
 
 local antiTpBtn = Instance.new("TextButton")
 antiTpBtn.Name = "AntiTeleport"
-antiTpBtn.Position = UDim2.new(0, 12, 0, 6)
+antiTpBtn.Position = UDim2.new(0, 12, 0, 44)
 antiTpBtn.Size = UDim2.new(1, -24, 0, 32)
 antiTpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 antiTpBtn.BorderSizePixel = 0
@@ -299,8 +322,8 @@ antiTpCorner.Parent = antiTpBtn
 
 local teleportList = Instance.new("ScrollingFrame")
 teleportList.Name = "TeleportList"
-teleportList.Position = UDim2.new(0, 12, 0, 46)
-teleportList.Size = UDim2.new(1, -24, 1, -52)
+teleportList.Position = UDim2.new(0, 12, 0, 84)
+teleportList.Size = UDim2.new(1, -24, 1, -90)
 teleportList.BackgroundTransparency = 1
 teleportList.BorderSizePixel = 0
 teleportList.ScrollBarThickness = 4
@@ -331,6 +354,15 @@ local function teleportTo(cframe)
 
     if activeTween then
         activeTween:Cancel()
+        activeTween = nil
+    end
+
+    if teleportMode == "cframe" then
+        if hrp.Anchored then
+            hrp.Anchored = false
+        end
+        hrp.CFrame = cframe
+        return
     end
 
     local dist = (hrp.Position - cframe.Position).Magnitude
