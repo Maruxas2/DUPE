@@ -85,15 +85,100 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(280, 470)
+main.Size = UDim2.fromOffset(300, 560)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
 main.Parent = screenGui
 
+-- Phone body: big rounded corners + dark bezel stroke.
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 8)
+mainCorner.CornerRadius = UDim.new(0, 34)
 mainCorner.Parent = main
+
+local bezel = Instance.new("UIStroke")
+bezel.Thickness = 4
+bezel.Color = Color3.fromRGB(10, 10, 12)
+bezel.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+bezel.Parent = main
+
+-- Phone status bar (fake clock + battery) with a notch.
+local statusStrip = Instance.new("Frame")
+statusStrip.Name = "StatusStrip"
+statusStrip.Position = UDim2.new(0, 0, 0, 0)
+statusStrip.Size = UDim2.new(1, 0, 0, 28)
+statusStrip.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
+statusStrip.BorderSizePixel = 0
+statusStrip.Parent = main
+
+local statusStripCorner = Instance.new("UICorner")
+statusStripCorner.CornerRadius = UDim.new(0, 30)
+statusStripCorner.Parent = statusStrip
+
+-- Square off the bottom of the status strip so only the top follows the body.
+local statusStripFill = Instance.new("Frame")
+statusStripFill.Name = "StatusFill"
+statusStripFill.AnchorPoint = Vector2.new(0.5, 1)
+statusStripFill.Position = UDim2.new(0.5, 0, 1, 0)
+statusStripFill.Size = UDim2.new(1, 0, 0, 14)
+statusStripFill.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
+statusStripFill.BorderSizePixel = 0
+statusStripFill.ZIndex = 0
+statusStripFill.Parent = statusStrip
+
+local clockLabel = Instance.new("TextLabel")
+clockLabel.Name = "Clock"
+clockLabel.BackgroundTransparency = 1
+clockLabel.Position = UDim2.new(0, 16, 0, 0)
+clockLabel.Size = UDim2.new(0, 60, 1, 0)
+clockLabel.Font = Enum.Font.GothamBold
+clockLabel.TextSize = 13
+clockLabel.TextColor3 = Color3.fromRGB(235, 235, 240)
+clockLabel.TextXAlignment = Enum.TextXAlignment.Left
+clockLabel.Text = "9:41"
+clockLabel.Parent = statusStrip
+
+local battLabel = Instance.new("TextLabel")
+battLabel.Name = "Battery"
+battLabel.BackgroundTransparency = 1
+battLabel.AnchorPoint = Vector2.new(1, 0)
+battLabel.Position = UDim2.new(1, -16, 0, 0)
+battLabel.Size = UDim2.new(0, 70, 1, 0)
+battLabel.Font = Enum.Font.GothamBold
+battLabel.TextSize = 13
+battLabel.TextColor3 = Color3.fromRGB(235, 235, 240)
+battLabel.TextXAlignment = Enum.TextXAlignment.Right
+battLabel.Text = "100% \u{2588}"
+battLabel.Parent = statusStrip
+
+local notch = Instance.new("Frame")
+notch.Name = "Notch"
+notch.AnchorPoint = Vector2.new(0.5, 0)
+notch.Position = UDim2.new(0.5, 0, 0, 0)
+notch.Size = UDim2.new(0, 96, 0, 20)
+notch.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
+notch.BorderSizePixel = 0
+notch.ZIndex = 3
+notch.Parent = statusStrip
+
+local notchCorner = Instance.new("UICorner")
+notchCorner.CornerRadius = UDim.new(0, 10)
+notchCorner.Parent = notch
+
+-- Home indicator bar at the bottom, like a phone.
+local homeBar = Instance.new("Frame")
+homeBar.Name = "HomeIndicator"
+homeBar.AnchorPoint = Vector2.new(0.5, 1)
+homeBar.Position = UDim2.new(0.5, 0, 1, -8)
+homeBar.Size = UDim2.new(0, 110, 0, 5)
+homeBar.BackgroundColor3 = Color3.fromRGB(120, 120, 130)
+homeBar.BorderSizePixel = 0
+homeBar.ZIndex = 5
+homeBar.Parent = main
+
+local homeBarCorner = Instance.new("UICorner")
+homeBarCorner.CornerRadius = UDim.new(1, 0)
+homeBarCorner.Parent = homeBar
 
 -- Keybind to show/hide the menu (default Right Shift; rebindable in Settings).
 local menuKeybind = Enum.KeyCode.RightShift
@@ -109,7 +194,8 @@ end)
 
 local titleBar = Instance.new("TextLabel")
 titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 32)
+titleBar.Position = UDim2.new(0, 0, 0, 28)
+titleBar.Size = UDim2.new(1, 0, 0, 34)
 titleBar.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
 titleBar.BorderSizePixel = 0
 titleBar.Text = "Velocity Hub"
@@ -119,14 +205,10 @@ titleBar.TextColor3 = Color3.fromRGB(235, 235, 240)
 titleBar.Active = true
 titleBar.Parent = main
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 8)
-titleCorner.Parent = titleBar
-
 -- Tab bar.
 local tabBar = Instance.new("Frame")
 tabBar.Name = "TabBar"
-tabBar.Position = UDim2.new(0, 0, 0, 32)
+tabBar.Position = UDim2.new(0, 0, 0, 62)
 tabBar.Size = UDim2.new(1, 0, 0, 82)
 tabBar.BackgroundColor3 = Color3.fromRGB(36, 36, 43)
 tabBar.BorderSizePixel = 0
@@ -166,8 +248,8 @@ local settingsTabButton = makeTabButton("Settings", 8)
 -- Content pages (sit below the tab bar).
 local function makePage()
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, 0, 1, -114)
-    page.Position = UDim2.new(0, 0, 0, 114)
+    page.Size = UDim2.new(1, -16, 1, -160)
+    page.Position = UDim2.new(0, 8, 0, 148)
     page.BackgroundTransparency = 1
     page.Parent = main
     return page
@@ -260,6 +342,11 @@ local function applyTheme(name)
     titleBar.BackgroundColor3 = theme.bar
     titleBar.TextColor3 = theme.accent
     tabBar.BackgroundColor3 = theme.bar
+    statusStrip.BackgroundColor3 = theme.bar
+    statusStripFill.BackgroundColor3 = theme.bar
+    clockLabel.TextColor3 = theme.accent
+    battLabel.TextColor3 = theme.accent
+    homeBar.BackgroundColor3 = theme.accent
     ACTIVE_TAB = theme.tabActive
     IDLE_TAB = theme.tabIdle
     selectTab(currentTab)
