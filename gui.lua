@@ -5,15 +5,36 @@ local function runDupe(...)
 end
 
 --[[
-    DUPE - Draggable menu GUI
-    A draggable Roblox menu. When the toggle is ON, the bundled dupe payload
-    (main.lua) is executed immediately and then every RUN_INTERVAL seconds until
-    it is switched OFF. A "Max Money" button fires a one-shot burst of runs, and
-    a dropdown selects which inventory Tool to act on.
+    DUPE - Draggable tabbed menu GUI
+    Tab "Main":  toggle runs the bundled dupe payload (main.lua) every
+                 RUN_INTERVAL seconds; a "Max Money" button fires a one-shot
+                 burst of runs; a dropdown picks which inventory Tool to act on.
+    Tab "Teleports": buttons that teleport the character to preset locations.
 ]]
 
 local RUN_INTERVAL = 8 -- seconds between executions while toggled ON
 local MAX_MONEY_BURST = 25 -- number of rapid runs the Max Money button fires
+
+-- Ordered list of teleport destinations {label, CFrame}.
+local TELEPORTS = {
+    { "Deli job 🥪", CFrame.new(-752.35, 255.03, -690.74) },
+    { "Capital One Bank 🏦", CFrame.new(-1217.05, 253.78, -3648.74) },
+    { "Ice Box 🧊", CFrame.new(-1200.36, 254.27, -3993.24) },
+    { "Margreens needs up dated dont use 🛒", CFrame.new(-853.21, -452.31, -618.48) },
+    { "Hotel 🏨", CFrame.new(-1012, 266, -933) },
+    { "Drip Store 👓", CFrame.new(67462.6953125, 10489.0322265625, 546.6762084960938) },
+    { "Gun Shop 🔫", CFrame.new(92990, 122098.51, 17231.82) },
+    { "Car Dealer 🚗", CFrame.new(-378.6668701171875, 253.2564697265625, -1245.4259033203125) },
+    { "Laundromat 💷", CFrame.new(-979.4635620117188, 253.65318298339844, -689.3339233398438) },
+    { "Studio 🎙", CFrame.new(93408.453125, 14484.7158203125, 570.139404296875) },
+    { "Hospital🏥", CFrame.new(-1594.82, 254.27, 23.50) },
+    { "needs updated or changed 🧊", CFrame.new(-209.68360900878906, 283.4959411621094, -1265.5286865234375) },
+    { "Exotic Dealer / Grass House 🍃", CFrame.new(-1521.943115234375, 272.5462646484375, -984.3020629882812) },
+    { "Safe 🔒", CFrame.new(-190, 295, -1010) },
+    { "Roof Top / Bank Tools 🛠", CFrame.new(-385, 340, -557) },
+    { "Second Gun Shop 🔫", CFrame.new(66202, 123615.7109375, 5749.81689453125) },
+    { "Construction Job 🔨", CFrame.new(-1729, 371, -1171) },
+}
 
 -- The dupe payload is bundled above in runDupe() (from main.lua).
 
@@ -49,7 +70,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(260, 300)
+main.Size = UDim2.fromOffset(280, 320)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -61,7 +82,7 @@ mainCorner.Parent = main
 
 local titleBar = Instance.new("TextLabel")
 titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 34)
+titleBar.Size = UDim2.new(1, 0, 0, 32)
 titleBar.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
 titleBar.BorderSizePixel = 0
 titleBar.Text = "DUPE"
@@ -75,10 +96,74 @@ local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = titleBar
 
+-- Tab bar.
+local tabBar = Instance.new("Frame")
+tabBar.Name = "TabBar"
+tabBar.Position = UDim2.new(0, 0, 0, 32)
+tabBar.Size = UDim2.new(1, 0, 0, 30)
+tabBar.BackgroundColor3 = Color3.fromRGB(36, 36, 43)
+tabBar.BorderSizePixel = 0
+tabBar.Parent = main
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Parent = tabBar
+
+local function makeTabButton(text, order)
+    local btn = Instance.new("TextButton")
+    btn.Name = text .. "Tab"
+    btn.Size = UDim2.new(0.5, 0, 1, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(36, 36, 43)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = text
+    btn.LayoutOrder = order
+    btn.Parent = tabBar
+    return btn
+end
+
+local mainTabButton = makeTabButton("Main", 1)
+local teleportTabButton = makeTabButton("Teleports", 2)
+
+-- Content pages (sit below the tab bar).
+local function makePage()
+    local page = Instance.new("Frame")
+    page.Size = UDim2.new(1, 0, 1, -62)
+    page.Position = UDim2.new(0, 0, 0, 62)
+    page.BackgroundTransparency = 1
+    page.Parent = main
+    return page
+end
+
+local mainPage = makePage()
+local teleportPage = makePage()
+
+local function selectTab(which)
+    local isMain = which == "main"
+    mainPage.Visible = isMain
+    teleportPage.Visible = not isMain
+    mainTabButton.BackgroundColor3 = isMain and Color3.fromRGB(60, 60, 72)
+        or Color3.fromRGB(36, 36, 43)
+    teleportTabButton.BackgroundColor3 = isMain and Color3.fromRGB(36, 36, 43)
+        or Color3.fromRGB(60, 60, 72)
+end
+
+mainTabButton.MouseButton1Click:Connect(function()
+    selectTab("main")
+end)
+teleportTabButton.MouseButton1Click:Connect(function()
+    selectTab("teleports")
+end)
+
+-- ==== Main page controls ====
 local status = Instance.new("TextLabel")
 status.Name = "Status"
 status.BackgroundTransparency = 1
-status.Position = UDim2.new(0, 12, 0, 84)
+status.Position = UDim2.new(0, 12, 0, 46)
 status.Size = UDim2.new(1, -24, 0, 48)
 status.Font = Enum.Font.Gotham
 status.TextSize = 14
@@ -87,7 +172,7 @@ status.TextWrapped = true
 status.TextXAlignment = Enum.TextXAlignment.Left
 status.TextYAlignment = Enum.TextYAlignment.Top
 status.Text = "Status: OFF\nItem: none"
-status.Parent = main
+status.Parent = mainPage
 
 local toggle = Instance.new("TextButton")
 toggle.Name = "Toggle"
@@ -101,7 +186,7 @@ toggle.Font = Enum.Font.GothamBold
 toggle.TextSize = 16
 toggle.TextColor3 = Color3.fromRGB(240, 240, 245)
 toggle.Text = "Start Dupe"
-toggle.Parent = main
+toggle.Parent = mainPage
 
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
@@ -119,7 +204,7 @@ maxMoney.Font = Enum.Font.GothamBold
 maxMoney.TextSize = 15
 maxMoney.TextColor3 = Color3.fromRGB(240, 245, 240)
 maxMoney.Text = "Max Money"
-maxMoney.Parent = main
+maxMoney.Parent = mainPage
 
 local maxMoneyCorner = Instance.new("UICorner")
 maxMoneyCorner.CornerRadius = UDim.new(0, 6)
@@ -129,7 +214,7 @@ maxMoneyCorner.Parent = maxMoney
 local selector = Instance.new("TextButton")
 selector.Name = "ItemSelector"
 selector.AnchorPoint = Vector2.new(0.5, 0)
-selector.Position = UDim2.new(0.5, 0, 0, 42)
+selector.Position = UDim2.new(0.5, 0, 0, 4)
 selector.Size = UDim2.new(1, -24, 0, 30)
 selector.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
 selector.BorderSizePixel = 0
@@ -138,7 +223,7 @@ selector.Font = Enum.Font.Gotham
 selector.TextSize = 14
 selector.TextColor3 = Color3.fromRGB(230, 230, 235)
 selector.Text = "Select item ▼"
-selector.Parent = main
+selector.Parent = mainPage
 
 local selectorCorner = Instance.new("UICorner")
 selectorCorner.CornerRadius = UDim.new(0, 6)
@@ -147,15 +232,15 @@ selectorCorner.Parent = selector
 local listFrame = Instance.new("ScrollingFrame")
 listFrame.Name = "ItemList"
 listFrame.AnchorPoint = Vector2.new(0.5, 0)
-listFrame.Position = UDim2.new(0.5, 0, 0, 74)
-listFrame.Size = UDim2.new(1, -24, 0, 130)
+listFrame.Position = UDim2.new(0.5, 0, 0, 36)
+listFrame.Size = UDim2.new(1, -24, 0, 120)
 listFrame.BackgroundColor3 = Color3.fromRGB(38, 38, 45)
 listFrame.BorderSizePixel = 0
 listFrame.Visible = false
 listFrame.ZIndex = 10
 listFrame.ScrollBarThickness = 4
 listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-listFrame.Parent = main
+listFrame.Parent = mainPage
 
 local listCorner = Instance.new("UICorner")
 listCorner.CornerRadius = UDim.new(0, 6)
@@ -165,6 +250,60 @@ local listLayout = Instance.new("UIListLayout")
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 2)
 listLayout.Parent = listFrame
+
+-- ==== Teleports page ====
+local teleportList = Instance.new("ScrollingFrame")
+teleportList.Name = "TeleportList"
+teleportList.Position = UDim2.new(0, 12, 0, 6)
+teleportList.Size = UDim2.new(1, -24, 1, -12)
+teleportList.BackgroundTransparency = 1
+teleportList.BorderSizePixel = 0
+teleportList.ScrollBarThickness = 4
+teleportList.CanvasSize = UDim2.new(0, 0, 0, 0)
+teleportList.Parent = teleportPage
+
+local teleportLayout = Instance.new("UIListLayout")
+teleportLayout.SortOrder = Enum.SortOrder.LayoutOrder
+teleportLayout.Padding = UDim.new(0, 4)
+teleportLayout.Parent = teleportList
+
+local function teleportTo(cframe)
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    if not char then
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CFrame = cframe
+    end
+end
+
+for i, entry in ipairs(TELEPORTS) do
+    local label, cframe = entry[1], entry[2]
+    local btn = Instance.new("TextButton")
+    btn.Name = "TP_" .. i
+    btn.Size = UDim2.new(1, -4, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = label
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.LayoutOrder = i
+    btn.Parent = teleportList
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        teleportTo(cframe)
+    end)
+end
+teleportList.CanvasSize = UDim2.new(0, 0, 0, #TELEPORTS * 34)
 
 -- Dragging (mouse + touch) via the title bar.
 local dragging = false
@@ -196,7 +335,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Toggle + 15s execution loop.
+-- Toggle + execution loop.
 local enabled = false
 local loopToken = 0
 local selectedItem = nil -- name of the Tool chosen in the dropdown
@@ -393,4 +532,5 @@ maxMoney.MouseButton1Click:Connect(function()
     end)
 end)
 
-print("[DUPE] menu loaded. Toggle the button to run every " .. RUN_INTERVAL .. "s.")
+selectTab("main")
+print("[DUPE] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
