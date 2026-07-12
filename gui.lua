@@ -105,13 +105,14 @@ titleCorner.Parent = titleBar
 local tabBar = Instance.new("Frame")
 tabBar.Name = "TabBar"
 tabBar.Position = UDim2.new(0, 0, 0, 32)
-tabBar.Size = UDim2.new(1, 0, 0, 30)
+tabBar.Size = UDim2.new(1, 0, 0, 56)
 tabBar.BackgroundColor3 = Color3.fromRGB(36, 36, 43)
 tabBar.BorderSizePixel = 0
 tabBar.Parent = main
 
-local tabLayout = Instance.new("UIListLayout")
-tabLayout.FillDirection = Enum.FillDirection.Horizontal
+local tabLayout = Instance.new("UIGridLayout")
+tabLayout.CellSize = UDim2.new(1 / 3, 0, 0, 26)
+tabLayout.CellPadding = UDim2.new(0, 0, 0, 2)
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabLayout.Parent = tabBar
 
@@ -135,12 +136,14 @@ local mainTabButton = makeTabButton("Main", 1)
 local teleportTabButton = makeTabButton("Teleports", 2)
 local autoBuyTabButton = makeTabButton("Auto Buy", 3)
 local playerTabButton = makeTabButton("Player", 4)
+local playersTabButton = makeTabButton("Players", 5)
+local playerUtilsTabButton = makeTabButton("Player Utils", 6)
 
 -- Content pages (sit below the tab bar).
 local function makePage()
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, 0, 1, -62)
-    page.Position = UDim2.new(0, 0, 0, 62)
+    page.Size = UDim2.new(1, 0, 1, -88)
+    page.Position = UDim2.new(0, 0, 0, 88)
     page.BackgroundTransparency = 1
     page.Parent = main
     return page
@@ -150,6 +153,8 @@ local mainPage = makePage()
 local teleportPage = makePage()
 local autoBuyPage = makePage()
 local playerPage = makePage()
+local playersPage = makePage()
+local playerUtilsPage = makePage()
 
 local ACTIVE_TAB = Color3.fromRGB(60, 60, 72)
 local IDLE_TAB = Color3.fromRGB(36, 36, 43)
@@ -159,10 +164,14 @@ local function selectTab(which)
     teleportPage.Visible = which == "teleports"
     autoBuyPage.Visible = which == "autobuy"
     playerPage.Visible = which == "player"
+    playersPage.Visible = which == "players"
+    playerUtilsPage.Visible = which == "playerutils"
     mainTabButton.BackgroundColor3 = which == "main" and ACTIVE_TAB or IDLE_TAB
     teleportTabButton.BackgroundColor3 = which == "teleports" and ACTIVE_TAB or IDLE_TAB
     autoBuyTabButton.BackgroundColor3 = which == "autobuy" and ACTIVE_TAB or IDLE_TAB
     playerTabButton.BackgroundColor3 = which == "player" and ACTIVE_TAB or IDLE_TAB
+    playersTabButton.BackgroundColor3 = which == "players" and ACTIVE_TAB or IDLE_TAB
+    playerUtilsTabButton.BackgroundColor3 = which == "playerutils" and ACTIVE_TAB or IDLE_TAB
 end
 
 mainTabButton.MouseButton1Click:Connect(function()
@@ -176,6 +185,12 @@ autoBuyTabButton.MouseButton1Click:Connect(function()
 end)
 playerTabButton.MouseButton1Click:Connect(function()
     selectTab("player")
+end)
+playersTabButton.MouseButton1Click:Connect(function()
+    selectTab("players")
+end)
+playerUtilsTabButton.MouseButton1Click:Connect(function()
+    selectTab("playerutils")
 end)
 
 -- ==== Main page controls ====
@@ -1579,6 +1594,467 @@ ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, plr)
             end
         end
     end)
+end)
+
+-- ==== Players page: pick an in-game player ====
+local Camera = workspace.CurrentCamera
+local selectedPlayerName = nil
+
+local function getSelectedPlayer()
+    if not selectedPlayerName then
+        return nil
+    end
+    return Players:FindFirstChild(selectedPlayerName)
+end
+
+local playersTitle = Instance.new("TextLabel")
+playersTitle.Name = "PlayersTitle"
+playersTitle.BackgroundTransparency = 1
+playersTitle.Position = UDim2.new(0, 12, 0, 6)
+playersTitle.Size = UDim2.new(1, -24, 0, 20)
+playersTitle.Font = Enum.Font.Gotham
+playersTitle.TextSize = 13
+playersTitle.TextColor3 = Color3.fromRGB(200, 200, 210)
+playersTitle.TextXAlignment = Enum.TextXAlignment.Left
+playersTitle.Text = "Selected: none"
+playersTitle.Parent = playersPage
+
+local playersRefresh = Instance.new("TextButton")
+playersRefresh.Name = "PlayersRefresh"
+playersRefresh.Position = UDim2.new(0, 12, 0, 30)
+playersRefresh.Size = UDim2.new(1, -24, 0, 28)
+playersRefresh.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+playersRefresh.BorderSizePixel = 0
+playersRefresh.AutoButtonColor = true
+playersRefresh.Font = Enum.Font.GothamBold
+playersRefresh.TextSize = 13
+playersRefresh.TextColor3 = Color3.fromRGB(230, 230, 235)
+playersRefresh.Text = "Refresh Players"
+playersRefresh.Parent = playersPage
+
+local playersRefreshCorner = Instance.new("UICorner")
+playersRefreshCorner.CornerRadius = UDim.new(0, 6)
+playersRefreshCorner.Parent = playersRefresh
+
+local playersList = Instance.new("ScrollingFrame")
+playersList.Name = "PlayersList"
+playersList.Position = UDim2.new(0, 12, 0, 64)
+playersList.Size = UDim2.new(1, -24, 1, -70)
+playersList.BackgroundTransparency = 1
+playersList.BorderSizePixel = 0
+playersList.ScrollBarThickness = 4
+playersList.CanvasSize = UDim2.new(0, 0, 0, 0)
+playersList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+playersList.Parent = playersPage
+
+local playersLayout = Instance.new("UIListLayout")
+playersLayout.SortOrder = Enum.SortOrder.LayoutOrder
+playersLayout.Padding = UDim.new(0, 4)
+playersLayout.Parent = playersList
+
+local playerButtons = {}
+
+local function highlightSelected()
+    for name, btn in pairs(playerButtons) do
+        if btn.Parent then
+            btn.BackgroundColor3 = (name == selectedPlayerName)
+                and Color3.fromRGB(46, 120, 70)
+                or Color3.fromRGB(50, 50, 58)
+        end
+    end
+    playersTitle.Text = "Selected: " .. (selectedPlayerName or "none")
+end
+
+local function rebuildPlayers()
+    for _, c in ipairs(playersList:GetChildren()) do
+        if c:IsA("TextButton") then
+            c:Destroy()
+        end
+    end
+    playerButtons = {}
+    local order = 0
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            order = order + 1
+            local btn = Instance.new("TextButton")
+            btn.Name = "Plr_" .. order
+            btn.Size = UDim2.new(1, -4, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+            btn.BorderSizePixel = 0
+            btn.AutoButtonColor = true
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 13
+            btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+            btn.Text = plr.Name
+            btn.TextTruncate = Enum.TextTruncate.AtEnd
+            btn.LayoutOrder = order
+            btn.Parent = playersList
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 6)
+            corner.Parent = btn
+
+            local plrName = plr.Name
+            playerButtons[plrName] = btn
+            btn.MouseButton1Click:Connect(function()
+                selectedPlayerName = plrName
+                highlightSelected()
+            end)
+        end
+    end
+    highlightSelected()
+end
+
+playersRefresh.MouseButton1Click:Connect(rebuildPlayers)
+Players.PlayerAdded:Connect(rebuildPlayers)
+Players.PlayerRemoving:Connect(function()
+    task.defer(rebuildPlayers)
+end)
+rebuildPlayers()
+
+-- ==== Player Utils page: valary player utilities ====
+-- Fire the game's gun remotes at a target part (valary Config.GunRemote).
+local function gunRemote(targetName, hpart, damage)
+    if not hpart then
+        hpart = "Head"
+    end
+    if damage == nil then
+        damage = math.huge
+    end
+    local targetPlayer = Players:FindFirstChild(targetName)
+    if not targetPlayer or not targetPlayer.Character then
+        return
+    end
+    local localChar = LocalPlayer.Character
+    local tool = localChar and localChar:FindFirstChildOfClass("Tool")
+    if not tool then
+        return
+    end
+    local hitPart = targetPlayer.Character:FindFirstChild(hpart)
+    local hum = targetPlayer.Character:FindFirstChild("Humanoid")
+    if not hitPart or not hum then
+        return
+    end
+
+    pcall(function()
+        require(tool.Setting).Range = 10000
+    end)
+
+    pcall(function()
+        ReplicatedStorage.VisualizeMuzzle:FireServer(table.unpack({
+            tool.Handle,
+            true,
+            { false, 7, Color3.new(1, 1.1098039150238, 0), 15, true, 0.02 },
+            tool.GunScript_Local.MuzzleEffect,
+        }))
+    end)
+
+    pcall(function()
+        ReplicatedStorage.VisualizeBullet:FireServer(table.unpack({
+            tool,
+            tool.Handle,
+            Vector3.new(-0.17746905982494, 0.088731124997139, 0.98011803627014),
+            tool.Handle.GunFirePoint,
+            { true, { 112139677907600, 92977228204408, 112139677907600, 92977228204408 }, 1, 1, 10, tool.GunScript_Local.HitEffect, true },
+            { true, { 0, 0, 0, 0, 0, 0 }, 1, 1, 1, tool.GunScript_Local.BloodEffect },
+            { true, 0.2, { 3696144972 }, true, 7, 1 },
+            { false, 8, true, { 163064102 }, 1, 1.5, 1, false, tool.GunScript_Local.ExplosionEffect },
+            { false, Vector3.new(0.10000000149012, 0, 0), Vector3.new(-0.10000000149012, 0, 0), tool.GunScript_Local.TracerEffect, nil, tool.GunScript_Local.ParticleEffect, 300, 526, 0, Vector3.zero, Vector3.new(0.40000000596046, 0.40000000596046, 0.40000000596046), Color3.new(0.63921570777893, 0.63529413938522, 0.61176472902298), 1, Enum.Material.Neon, Enum.PartType.Cylinder, false, 6696543809, 0, Vector3.new(0.0070000002160668, 0.0070000002160668, 0.0070000002160668) },
+            { true, { 269514869, 269514887, 269514807, 269514817 }, 0.5, 1, 1, 1.5, 100 },
+            { false, 3, Color3.new(1, 0.64705884456635, 0.60000002384186), 6, true },
+        }))
+    end)
+
+    pcall(function()
+        ReplicatedStorage.InflictTarget:FireServer(table.unpack({
+            tool,
+            LocalPlayer,
+            hum,
+            hitPart,
+            damage,
+            { 0, 0, false, false, tool.GunScript_Server.IgniteScript, tool.GunScript_Server.IcifyScript, 100, 100 },
+            { false, 5, 3 },
+            hitPart,
+            { false, { 1930359546 }, 1, 1.5, 1 },
+            hitPart.Position,
+            Vector3.new(0.074456036090851, -0.099775791168213, -0.99222022294998),
+            true,
+        }))
+    end)
+end
+
+local putils = {}
+local function putilOn(name)
+    return putils[name] == true
+end
+
+local putilsScroll = Instance.new("ScrollingFrame")
+putilsScroll.Name = "PlayerUtilsList"
+putilsScroll.Position = UDim2.new(0, 12, 0, 6)
+putilsScroll.Size = UDim2.new(1, -24, 1, -12)
+putilsScroll.BackgroundTransparency = 1
+putilsScroll.BorderSizePixel = 0
+putilsScroll.ScrollBarThickness = 4
+putilsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+putilsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+putilsScroll.Parent = playerUtilsPage
+
+local putilsLayout = Instance.new("UIListLayout")
+putilsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+putilsLayout.Padding = UDim.new(0, 4)
+putilsLayout.Parent = putilsScroll
+
+local putilsOrder = 0
+local function makeUtilToggle(key, label)
+    putilsOrder = putilsOrder + 1
+    local btn = Instance.new("TextButton")
+    btn.Name = "Util_" .. key
+    btn.Size = UDim2.new(1, -4, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = label .. ": OFF"
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.LayoutOrder = putilsOrder
+    btn.Parent = putilsScroll
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        putils[key] = not putils[key]
+        if putils[key] then
+            btn.Text = label .. ": ON"
+            btn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+        else
+            btn.Text = label .. ": OFF"
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+        end
+    end)
+end
+
+local function makeUtilButton(label, callback)
+    putilsOrder = putilsOrder + 1
+    local btn = Instance.new("TextButton")
+    btn.Name = "UtilBtn_" .. putilsOrder
+    btn.Size = UDim2.new(1, -4, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(58, 50, 50)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+    btn.Text = label
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.LayoutOrder = putilsOrder
+    btn.Parent = putilsScroll
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        task.spawn(function()
+            pcall(callback)
+        end)
+    end)
+end
+
+makeUtilToggle("Spectate", "Spectate Player")
+makeUtilToggle("Bring", "Bring Player")
+makeUtilToggle("BugCar", "Bug/Kill Player (Car)")
+makeUtilToggle("AutoKill", "Auto Kill (Gun)")
+makeUtilToggle("AutoRagdoll", "Auto Ragdoll (Gun)")
+
+makeUtilButton("Teleport To Player", function()
+    local target = getSelectedPlayer()
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        teleportTo(target.Character.HumanoidRootPart.CFrame)
+    end
+end)
+makeUtilButton("Down Player (Hold Gun)", function()
+    local target = getSelectedPlayer()
+    if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+        gunRemote(target.Name, "HumanoidRootPart", target.Character.Humanoid.Health - 5)
+    end
+end)
+makeUtilButton("Kill Player (Hold Gun)", function()
+    local target = getSelectedPlayer()
+    if target then
+        gunRemote(target.Name, "HumanoidRootPart", math.huge)
+    end
+end)
+makeUtilButton("God Player (Hold Gun)", function()
+    local target = getSelectedPlayer()
+    if target then
+        gunRemote(target.Name, "HumanoidRootPart", math.sqrt(-1))
+    end
+end)
+makeUtilButton("Kill All Players (Hold Gun)", function()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character
+            and plr.Character:FindFirstChild("Humanoid")
+            and plr.Character:FindFirstChild("Humanoid").Health ~= 0
+            and not plr.Character:FindFirstChildOfClass("ForceField")
+            and plr.Character:FindFirstChild("HumanoidRootPart") then
+            gunRemote(plr.Name, "HumanoidRootPart", math.huge)
+            task.wait(0.01)
+        end
+    end
+end)
+makeUtilButton("God All Players (Hold Gun)", function()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character
+            and plr.Character:FindFirstChild("Humanoid")
+            and plr.Character:FindFirstChild("Humanoid").Health ~= 0
+            and not plr.Character:FindFirstChildOfClass("ForceField")
+            and plr.Character:FindFirstChild("HumanoidRootPart") then
+            gunRemote(plr.Name, "HumanoidRootPart", math.sqrt(-1))
+            task.wait(0.01)
+        end
+    end
+end)
+
+local function targetReady()
+    local localChar = LocalPlayer.Character
+    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+    local target = getSelectedPlayer()
+    if not target or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+    return target
+end
+
+-- Spectate: point the camera at the selected player while ON.
+local wasSpectating = false
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        local localChar = LocalPlayer.Character
+        local localHum = localChar and localChar:FindFirstChildOfClass("Humanoid")
+        if putilOn("Spectate") then
+            wasSpectating = true
+            local target = getSelectedPlayer()
+            local subject = target and target.Character
+                and target.Character:FindFirstChildOfClass("Humanoid")
+            Camera.CameraSubject = subject or localHum
+        elseif wasSpectating then
+            wasSpectating = false
+            if localHum then
+                Camera.CameraSubject = localHum
+            end
+        end
+    end)
+end)
+
+-- Bring Player: pull the selected player to you.
+RunService.Heartbeat:Connect(function()
+    if not putilOn("Bring") then
+        return
+    end
+    pcall(function()
+        local target = targetReady()
+        if target and target.Name ~= LocalPlayer.Name then
+            target.Character.HumanoidRootPart.CFrame =
+                LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(2, 0, 0)
+        end
+    end)
+end)
+
+-- Auto Kill (Gun).
+task.spawn(function()
+    while task.wait(1) do
+        if putilOn("AutoKill") then
+            pcall(function()
+                local target = targetReady()
+                local localChar = LocalPlayer.Character
+                local tool = localChar and localChar:FindFirstChildOfClass("Tool")
+                if not target or not tool or not tool:FindFirstChild("GunScript_Local") then
+                    return
+                end
+                local hum = target.Character:FindFirstChild("Humanoid")
+                if hum and hum.Health > 0 and not target.Character:FindFirstChildOfClass("ForceField") then
+                    gunRemote(target.Name, "Head", math.huge)
+                end
+            end)
+        end
+    end
+end)
+
+-- Auto Ragdoll (Gun).
+task.spawn(function()
+    while task.wait(2) do
+        if putilOn("AutoRagdoll") then
+            pcall(function()
+                local target = targetReady()
+                local localChar = LocalPlayer.Character
+                local tool = localChar and localChar:FindFirstChildOfClass("Tool")
+                if not target or not tool or not tool:FindFirstChild("GunScript_Local") then
+                    return
+                end
+                local hum = target.Character:FindFirstChild("Humanoid")
+                if hum and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Physics then
+                    gunRemote(target.Name, "RightUpperLeg", 0.01)
+                end
+            end)
+        end
+    end
+end)
+
+-- Bug/Kill Player (Car): shove a civilian car onto the selected player.
+local function getFreeVehicle()
+    local civ = workspace:FindFirstChild("CivCars")
+    if not civ then
+        return nil
+    end
+    for _, v in ipairs(civ:GetChildren()) do
+        local seat = v:FindFirstChild("DriveSeat")
+        if seat and not seat.Occupant then
+            return v
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    while task.wait() do
+        if putilOn("BugCar") then
+            pcall(function()
+                local target = targetReady()
+                local localChar = LocalPlayer.Character
+                if not target or not localChar then
+                    return
+                end
+                local car = getFreeVehicle()
+                if not car or not car:FindFirstChild("DriveSeat") or car.DriveSeat.Occupant then
+                    return
+                end
+                if not car:GetAttribute("Usable") then
+                    car.DriveSeat:Sit(localChar:FindFirstChildOfClass("Humanoid"))
+                    car:SetAttribute("Usable", true)
+                    task.wait(1)
+                    local hum = localChar:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        hum.Jump = true
+                        hum.Sit = false
+                    end
+                end
+                task.wait()
+                if not car.PrimaryPart and car:FindFirstChild("Body") then
+                    car.PrimaryPart = car.Body:FindFirstChildWhichIsA("BasePart", true)
+                end
+                if car.PrimaryPart then
+                    car:PivotTo(target.Character.HumanoidRootPart.CFrame)
+                end
+            end)
+        end
+    end
 end)
 
 selectTab("main")
