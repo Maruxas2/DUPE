@@ -95,6 +95,18 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = main
 
+-- Keybind to show/hide the menu (default Right Shift; rebindable in Settings).
+local menuKeybind = Enum.KeyCode.RightShift
+local rebindingMenu = false
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if rebindingMenu or gameProcessed then
+        return
+    end
+    if input.KeyCode == menuKeybind then
+        main.Visible = not main.Visible
+    end
+end)
+
 local titleBar = Instance.new("TextLabel")
 titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 32)
@@ -2946,10 +2958,58 @@ local listRefreshCorner = Instance.new("UICorner")
 listRefreshCorner.CornerRadius = UDim.new(0, 6)
 listRefreshCorner.Parent = listRefreshBtn
 
+local keybindBtn = Instance.new("TextButton")
+keybindBtn.Name = "Settings_MenuKeybind"
+keybindBtn.Position = UDim2.new(0, 12, 0, 166)
+keybindBtn.Size = UDim2.new(1, -24, 0, 32)
+keybindBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 82)
+keybindBtn.BorderSizePixel = 0
+keybindBtn.AutoButtonColor = true
+keybindBtn.Font = Enum.Font.GothamBold
+keybindBtn.TextSize = 13
+keybindBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+keybindBtn.Text = "Menu Toggle: " .. menuKeybind.Name
+keybindBtn.Parent = settingsPage
+local keybindCorner = Instance.new("UICorner")
+keybindCorner.CornerRadius = UDim.new(0, 6)
+keybindCorner.Parent = keybindBtn
+keybindBtn.MouseButton1Click:Connect(function()
+    rebindingMenu = true
+    keybindBtn.Text = "Press a key... (Esc to cancel)"
+    local conn
+    conn = UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            conn:Disconnect()
+            if input.KeyCode ~= Enum.KeyCode.Escape then
+                menuKeybind = input.KeyCode
+            end
+            keybindBtn.Text = "Menu Toggle: " .. menuKeybind.Name
+            task.defer(function()
+                rebindingMenu = false
+            end)
+        end
+    end)
+end)
+
+regFlag("menuKeybind", function()
+    return menuKeybind.Name
+end, function(v)
+    if type(v) ~= "string" then
+        return
+    end
+    local ok, kc = pcall(function()
+        return Enum.KeyCode[v]
+    end)
+    if ok and kc then
+        menuKeybind = kc
+        keybindBtn.Text = "Menu Toggle: " .. menuKeybind.Name
+    end
+end)
+
 local savedLabel = Instance.new("TextLabel")
 savedLabel.Name = "SavedLabel"
 savedLabel.BackgroundTransparency = 1
-savedLabel.Position = UDim2.new(0, 12, 0, 166)
+savedLabel.Position = UDim2.new(0, 12, 0, 204)
 savedLabel.Size = UDim2.new(1, -24, 0, 18)
 savedLabel.Font = Enum.Font.Gotham
 savedLabel.TextSize = 12
@@ -2960,8 +3020,8 @@ savedLabel.Parent = settingsPage
 
 configList = Instance.new("ScrollingFrame")
 configList.Name = "ConfigList"
-configList.Position = UDim2.new(0, 12, 0, 188)
-configList.Size = UDim2.new(1, -24, 1, -194)
+configList.Position = UDim2.new(0, 12, 0, 226)
+configList.Size = UDim2.new(1, -24, 1, -232)
 configList.BackgroundTransparency = 1
 configList.BorderSizePixel = 0
 configList.ScrollBarThickness = 4
