@@ -2383,33 +2383,35 @@ regFlag("gun:SprayPaint", function()
 end, setSpray)
 
 local function spawnPaint(pos, normal)
-    local anchor = Instance.new("Part")
-    anchor.Anchored = true
-    anchor.CanCollide = false
-    anchor.CanQuery = false
-    anchor.Transparency = 1
-    anchor.Size = Vector3.new(0.2, 0.2, 0.2)
-    anchor.CFrame = CFrame.new(pos)
-    anchor.Parent = workspace
+    -- Flat panel laid against the wall, oriented to the surface normal.
+    local panel = Instance.new("Part")
+    panel.Anchored = true
+    panel.CanCollide = false
+    panel.CanQuery = false
+    panel.Transparency = 1
+    panel.Size = Vector3.new(9, 3, 0.05)
+    panel.CFrame = CFrame.new(pos + normal * 0.03, pos + normal * 0.03 + normal)
+    panel.Parent = workspace
 
-    local tag = Instance.new("BillboardGui")
-    tag.Name = "SprayTag"
-    tag.Adornee = anchor
-    tag.Size = UDim2.new(0, 700, 0, 200)
-    tag.AlwaysOnTop = true
-    tag.Parent = anchor
+    local surf = Instance.new("SurfaceGui")
+    surf.Name = "SprayTag"
+    surf.Face = Enum.NormalId.Back
+    surf.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    surf.PixelsPerStud = 100
+    surf.Adornee = panel
+    surf.Parent = panel
 
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 1, 0)
     frame.BackgroundColor3 = Color3.fromRGB(150, 40, 230)
     frame.BorderSizePixel = 0
-    frame.Parent = tag
-    roundCorner(frame, UDim.new(0, 14))
+    frame.Parent = surf
+    roundCorner(frame, UDim.new(0, 20))
 
     local lbl = Instance.new("TextLabel")
     lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1, -12, 1, -12)
-    lbl.Position = UDim2.new(0, 6, 0, 6)
+    lbl.Size = UDim2.new(1, -20, 1, -20)
+    lbl.Position = UDim2.new(0, 10, 0, 10)
     lbl.Font = Enum.Font.GothamBlack
     lbl.TextScaled = true
     lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -2418,7 +2420,7 @@ local function spawnPaint(pos, normal)
     lbl.Parent = frame
 
     task.delay(8, function()
-        anchor:Destroy()
+        panel:Destroy()
     end)
 end
 
