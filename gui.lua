@@ -47,7 +47,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(260, 150)
+main.Size = UDim2.fromOffset(260, 240)
 main.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
 main.BorderSizePixel = 0
 main.Active = true
@@ -76,12 +76,15 @@ titleCorner.Parent = titleBar
 local status = Instance.new("TextLabel")
 status.Name = "Status"
 status.BackgroundTransparency = 1
-status.Position = UDim2.new(0, 0, 0, 42)
-status.Size = UDim2.new(1, 0, 0, 40)
+status.Position = UDim2.new(0, 12, 0, 84)
+status.Size = UDim2.new(1, -24, 0, 48)
 status.Font = Enum.Font.Gotham
 status.TextSize = 14
 status.TextColor3 = Color3.fromRGB(200, 200, 210)
-status.Text = "Status: OFF"
+status.TextWrapped = true
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.TextYAlignment = Enum.TextYAlignment.Top
+status.Text = "Status: OFF\nItem: none"
 status.Parent = main
 
 local toggle = Instance.new("TextButton")
@@ -101,6 +104,47 @@ toggle.Parent = main
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggle
+
+-- Inventory dropdown: pick which Tool to auto-dupe.
+local selector = Instance.new("TextButton")
+selector.Name = "ItemSelector"
+selector.AnchorPoint = Vector2.new(0.5, 0)
+selector.Position = UDim2.new(0.5, 0, 0, 42)
+selector.Size = UDim2.new(1, -24, 0, 30)
+selector.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+selector.BorderSizePixel = 0
+selector.AutoButtonColor = true
+selector.Font = Enum.Font.Gotham
+selector.TextSize = 14
+selector.TextColor3 = Color3.fromRGB(230, 230, 235)
+selector.Text = "Select item ▼"
+selector.Parent = main
+
+local selectorCorner = Instance.new("UICorner")
+selectorCorner.CornerRadius = UDim.new(0, 6)
+selectorCorner.Parent = selector
+
+local listFrame = Instance.new("ScrollingFrame")
+listFrame.Name = "ItemList"
+listFrame.AnchorPoint = Vector2.new(0.5, 0)
+listFrame.Position = UDim2.new(0.5, 0, 0, 74)
+listFrame.Size = UDim2.new(1, -24, 0, 130)
+listFrame.BackgroundColor3 = Color3.fromRGB(38, 38, 45)
+listFrame.BorderSizePixel = 0
+listFrame.Visible = false
+listFrame.ZIndex = 10
+listFrame.ScrollBarThickness = 4
+listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+listFrame.Parent = main
+
+local listCorner = Instance.new("UICorner")
+listCorner.CornerRadius = UDim.new(0, 6)
+listCorner.Parent = listFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 2)
+listLayout.Parent = listFrame
 
 -- Dragging (mouse + touch) via the title bar.
 local dragging = false
@@ -135,24 +179,153 @@ end)
 -- Toggle + 15s execution loop.
 local enabled = false
 local loopToken = 0
+local selectedItem = nil -- name of the Tool chosen in the dropdown
+
+local function updateStatus()
+    local itemText = selectedItem and ("Item: " .. selectedItem) or "Item: none"
+    local stateText = enabled
+        and ("Status: ON (every " .. RUN_INTERVAL .. "s)")
+        or "Status: OFF"
+    status.Text = stateText .. "\n" .. itemText
+end
 
 local function setVisualState(on)
     if on then
         toggle.Text = "Stop Dupe"
         toggle.BackgroundColor3 = Color3.fromRGB(196, 64, 64)
-        status.Text = "Status: ON (every " .. RUN_INTERVAL .. "s)"
     else
         toggle.Text = "Start Dupe"
         toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        status.Text = "Status: OFF"
     end
+    updateStatus()
 end
 
+-- Inventory helpers.
+local function getInventoryTools()
+    local tools = {}
+    local player = Players.LocalPlayer
+    if not player then
+        return tools
+    end
+    local backpack = player:FindFirstChildOfClass("Backpack")
+    if backpack then
+        for _, t in ipairs(backpack:GetChildren()) do
+            if t:IsA("Tool") then
+                table.insert(tools, t)
+            end
+        end
+    end
+    local char = player.Character
+    if char then
+        for _, t in ipairs(char:GetChildren()) do
+            if t:IsA("Tool") then
+                table.insert(tools, t)
+            end
+        end
+    end
+    return tools
+end
+
+local function findTool(name)
+    for _, t in ipairs(getInventoryTools()) do
+        if t.Name == name then
+            return t
+        end
+    end
+    return nil
+end
+
+-- Equip the selected tool (if in the backpack) so payloads that dupe the
+-- currently held tool act on the chosen item. Returns the Tool (or nil).
+local function equipSelected()
+    local player = Players.LocalPlayer
+    if not player or not selectedItem then
+        return nil
+    end
+    local char = player.Character
+    local tool = findTool(selectedItem)
+    if tool and char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and tool.Parent ~= char then
+            pcall(function()
+                humanoid:EquipTool(tool)
+            end)
+        end
+    end
+    return tool
+end
+
+-- Dropdown open/close + population.
+local function closeList()
+    listFrame.Visible = false
+    selector.Text = (selectedItem and ("Item: " .. selectedItem) or "Select item")
+        .. " ▼"
+end
+
+local function refreshList()
+    for _, c in ipairs(listFrame:GetChildren()) do
+        if c:IsA("TextButton") then
+            c:Destroy()
+        end
+    end
+    local seen = {}
+    local count = 0
+    for _, t in ipairs(getInventoryTools()) do
+        if not seen[t.Name] then
+            seen[t.Name] = true
+            count = count + 1
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -4, 0, 26)
+            btn.BackgroundColor3 = Color3.fromRGB(56, 56, 66)
+            btn.BorderSizePixel = 0
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 13
+            btn.TextColor3 = Color3.fromRGB(230, 230, 235)
+            btn.Text = t.Name
+            btn.ZIndex = 11
+            btn.LayoutOrder = count
+            btn.Parent = listFrame
+            local name = t.Name
+            btn.MouseButton1Click:Connect(function()
+                selectedItem = name
+                closeList()
+                updateStatus()
+            end)
+        end
+    end
+    if count == 0 then
+        local empty = Instance.new("TextButton")
+        empty.Name = "Empty"
+        empty.Size = UDim2.new(1, -4, 0, 26)
+        empty.BackgroundTransparency = 1
+        empty.AutoButtonColor = false
+        empty.Font = Enum.Font.Gotham
+        empty.TextSize = 13
+        empty.TextColor3 = Color3.fromRGB(160, 160, 170)
+        empty.Text = "(no tools found)"
+        empty.ZIndex = 11
+        empty.Parent = listFrame
+        count = 1
+    end
+    listFrame.CanvasSize = UDim2.new(0, 0, 0, count * 28)
+end
+
+selector.MouseButton1Click:Connect(function()
+    if listFrame.Visible then
+        closeList()
+    else
+        refreshList()
+        listFrame.Visible = true
+    end
+end)
+
 local function safeRun()
-    local ok, err = pcall(runDupe)
+    local tool = equipSelected()
+    local ok, err = pcall(runDupe, tool)
     if not ok then
         warn("[DUPE] execution error: " .. tostring(err))
-        status.Text = "Status: ON (last run errored)"
+        status.Text = "Status: ON (last run errored)\n"
+            .. (selectedItem and ("Item: " .. selectedItem) or "Item: none")
     end
 end
 
