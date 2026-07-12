@@ -1808,7 +1808,6 @@ local PLAYER_MODS = {
     { "DisableCameraBobbing", "Disable Camera Bobbing" },
     { "DisableBloodEffects", "Disable Blood Effects" },
     { "DisableCameras", "Disable Cameras" },
-    { "RGBGun", "RGB Gun" },
     { "HideName", "Hide Name" },
 }
 
@@ -1920,29 +1919,6 @@ local function updateHideName()
     end
 end
 RunService.Heartbeat:Connect(updateHideName)
-
--- RGB Gun: rainbow-cycle the colors of the currently equipped tool.
-local rgbHue = 0
-RunService.RenderStepped:Connect(function()
-    if not modOn("RGBGun") then
-        return
-    end
-    local char = LocalPlayer.Character
-    if not char then
-        return
-    end
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then
-        return
-    end
-    rgbHue = (rgbHue + 0.01) % 1
-    local col = Color3.fromHSV(rgbHue, 1, 1)
-    for _, obj in ipairs(tool:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            obj.Color = col
-        end
-    end
-end)
 
 local deathFrame
 
