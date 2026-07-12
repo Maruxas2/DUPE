@@ -185,7 +185,9 @@ local settingsPage = makePage()
 local ACTIVE_TAB = Color3.fromRGB(60, 60, 72)
 local IDLE_TAB = Color3.fromRGB(36, 36, 43)
 
+local currentTab = "main"
 local function selectTab(which)
+    currentTab = which
     mainPage.Visible = which == "main"
     teleportPage.Visible = which == "teleports"
     autoBuyPage.Visible = which == "autobuy"
@@ -228,6 +230,40 @@ end)
 settingsTabButton.MouseButton1Click:Connect(function()
     selectTab("settings")
 end)
+
+-- ==== Themes ====
+local THEMES = {
+    { name = "Midnight", bg = Color3.fromRGB(28, 28, 34), bar = Color3.fromRGB(44, 44, 52), tabIdle = Color3.fromRGB(36, 36, 43), tabActive = Color3.fromRGB(60, 60, 72), accent = Color3.fromRGB(235, 235, 240) },
+    { name = "Neon Purple", bg = Color3.fromRGB(24, 18, 38), bar = Color3.fromRGB(46, 28, 74), tabIdle = Color3.fromRGB(34, 24, 56), tabActive = Color3.fromRGB(126, 64, 220), accent = Color3.fromRGB(190, 130, 255) },
+    { name = "Cyber Teal", bg = Color3.fromRGB(14, 26, 30), bar = Color3.fromRGB(18, 44, 50), tabIdle = Color3.fromRGB(20, 38, 42), tabActive = Color3.fromRGB(0, 160, 160), accent = Color3.fromRGB(80, 240, 220) },
+    { name = "Blood", bg = Color3.fromRGB(30, 16, 16), bar = Color3.fromRGB(60, 22, 22), tabIdle = Color3.fromRGB(44, 20, 20), tabActive = Color3.fromRGB(170, 40, 40), accent = Color3.fromRGB(255, 110, 110) },
+    { name = "Ocean", bg = Color3.fromRGB(16, 24, 40), bar = Color3.fromRGB(24, 40, 72), tabIdle = Color3.fromRGB(22, 34, 58), tabActive = Color3.fromRGB(48, 110, 200), accent = Color3.fromRGB(110, 180, 255) },
+    { name = "Emerald", bg = Color3.fromRGB(16, 30, 22), bar = Color3.fromRGB(22, 52, 38), tabIdle = Color3.fromRGB(20, 42, 30), tabActive = Color3.fromRGB(40, 160, 90), accent = Color3.fromRGB(110, 240, 160) },
+    { name = "Sunset", bg = Color3.fromRGB(34, 20, 24), bar = Color3.fromRGB(70, 34, 30), tabIdle = Color3.fromRGB(52, 26, 26), tabActive = Color3.fromRGB(220, 110, 50), accent = Color3.fromRGB(255, 170, 90) },
+    { name = "Mono Light", bg = Color3.fromRGB(232, 232, 236), bar = Color3.fromRGB(210, 210, 216), tabIdle = Color3.fromRGB(200, 200, 208), tabActive = Color3.fromRGB(150, 150, 160), accent = Color3.fromRGB(40, 40, 48) },
+}
+
+local currentTheme = "Midnight"
+local function applyTheme(name)
+    local theme
+    for _, t in ipairs(THEMES) do
+        if t.name == name then
+            theme = t
+            break
+        end
+    end
+    if not theme then
+        return
+    end
+    currentTheme = theme.name
+    main.BackgroundColor3 = theme.bg
+    titleBar.BackgroundColor3 = theme.bar
+    titleBar.TextColor3 = theme.accent
+    tabBar.BackgroundColor3 = theme.bar
+    ACTIVE_TAB = theme.tabActive
+    IDLE_TAB = theme.tabIdle
+    selectTab(currentTab)
+end
 
 -- ==== Main page controls ====
 -- Scrollable container so every control is reachable on any screen size.
@@ -2961,7 +2997,7 @@ listRefreshCorner.Parent = listRefreshBtn
 local keybindBtn = Instance.new("TextButton")
 keybindBtn.Name = "Settings_MenuKeybind"
 keybindBtn.Position = UDim2.new(0, 12, 0, 166)
-keybindBtn.Size = UDim2.new(1, -24, 0, 32)
+keybindBtn.Size = UDim2.new(0.5, -16, 0, 32)
 keybindBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 82)
 keybindBtn.BorderSizePixel = 0
 keybindBtn.AutoButtonColor = true
@@ -3004,6 +3040,43 @@ end, function(v)
         menuKeybind = kc
         keybindBtn.Text = "Menu Toggle: " .. menuKeybind.Name
     end
+end)
+
+local themeIndex = 1
+local themeBtn = Instance.new("TextButton")
+themeBtn.Name = "Settings_Theme"
+themeBtn.Position = UDim2.new(0.5, 4, 0, 166)
+themeBtn.Size = UDim2.new(0.5, -16, 0, 32)
+themeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 82)
+themeBtn.BorderSizePixel = 0
+themeBtn.AutoButtonColor = true
+themeBtn.Font = Enum.Font.GothamBold
+themeBtn.TextSize = 13
+themeBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+themeBtn.Text = "Theme: " .. currentTheme
+themeBtn.Parent = settingsPage
+local themeCorner = Instance.new("UICorner")
+themeCorner.CornerRadius = UDim.new(0, 6)
+themeCorner.Parent = themeBtn
+themeBtn.MouseButton1Click:Connect(function()
+    themeIndex = themeIndex % #THEMES + 1
+    applyTheme(THEMES[themeIndex].name)
+    themeBtn.Text = "Theme: " .. currentTheme
+end)
+
+regFlag("theme", function()
+    return currentTheme
+end, function(v)
+    if type(v) ~= "string" then
+        return
+    end
+    applyTheme(v)
+    for i, t in ipairs(THEMES) do
+        if t.name == currentTheme then
+            themeIndex = i
+        end
+    end
+    themeBtn.Text = "Theme: " .. currentTheme
 end)
 
 local savedLabel = Instance.new("TextLabel")
