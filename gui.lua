@@ -2382,45 +2382,36 @@ regFlag("gun:SprayPaint", function()
     return sprayEnabled
 end, setSpray)
 
+local graffitiImage = "rbxassetid://81817688420352"
+
 local function spawnPaint(pos, normal)
-    -- Flat panel laid against the wall, oriented to the surface normal.
-    local panel = Instance.new("Part")
-    panel.Anchored = true
-    panel.CanCollide = false
-    panel.CanQuery = false
-    panel.Transparency = 1
-    panel.Size = Vector3.new(9, 3, 0.05)
-    panel.CFrame = CFrame.new(pos + normal * 0.03, pos + normal * 0.03 + normal)
-    panel.Parent = workspace
+    local holder = Instance.new("Part")
+    holder.Name = "CertifiedImpact"
+    holder.Anchored = true
+    holder.CanCollide = false
+    holder.CanQuery = false
+    holder.CanTouch = false
+    holder.Transparency = 1
+    holder.Size = Vector3.new(8, 8, 0.05)
+    holder.CFrame = CFrame.lookAt(pos + normal * 0.08, pos + normal)
+    holder.Parent = workspace
 
-    local surf = Instance.new("SurfaceGui")
-    surf.Name = "SprayTag"
-    surf.Face = Enum.NormalId.Back
-    surf.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-    surf.PixelsPerStud = 100
-    surf.Adornee = panel
-    surf.Parent = panel
+    local surface = Instance.new("SurfaceGui")
+    surface.Face = Enum.NormalId.Front
+    surface.AlwaysOnTop = false
+    surface.LightInfluence = 0
+    surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    surface.PixelsPerStud = 60
+    surface.Parent = holder
 
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(150, 40, 230)
-    frame.BorderSizePixel = 0
-    frame.Parent = surf
-    roundCorner(frame, UDim.new(0, 20))
+    local image = Instance.new("ImageLabel")
+    image.BackgroundTransparency = 1
+    image.Size = UDim2.fromScale(1, 1)
+    image.Image = graffitiImage
+    image.Parent = surface
 
-    local lbl = Instance.new("TextLabel")
-    lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1, -20, 1, -20)
-    lbl.Position = UDim2.new(0, 10, 0, 10)
-    lbl.Font = Enum.Font.GothamBlack
-    lbl.TextScaled = true
-    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    lbl.TextStrokeTransparency = 0.4
-    lbl.Text = "Galaxy S26 runs shit fn"
-    lbl.Parent = frame
-
-    task.delay(8, function()
-        panel:Destroy()
+    task.delay(10, function()
+        holder:Destroy()
     end)
 end
 
@@ -2442,8 +2433,9 @@ local function doSpray()
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = { char }
-    local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, params)
-    if result then
+    params.IgnoreWater = true
+    local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+    if result and not result.Instance:IsDescendantOf(char) then
         spawnPaint(result.Position, result.Normal)
     end
 end
