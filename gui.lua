@@ -1125,20 +1125,18 @@ local function runSafeDupe(toolName)
     teleportTo(tpTarget)
     task.wait(0.4)
 
-    -- Argument for the remote: the Safe model if we found it, else nil.
-    status.Text = "Safe dupe: storing " .. toolName
+    -- Race the store against the take: fire the store, then immediately spam the
+    -- take-out in the same window so the server hands the item back while a copy
+    -- is still registered inside the safe (leaves a duplicate).
+    status.Text = "Safe dupe: duping " .. toolName
     pcall(function()
         inv:FireServer("Change", toolName, "Backpack", safe)
     end)
-    task.wait(0.4)
-
-    -- Spam the take-out before the server settles to leave a duplicate.
-    status.Text = "Safe dupe: pulling copies"
-    for _ = 1, 4 do
+    for _ = 1, 8 do
         pcall(function()
             inv:FireServer("Change", toolName, "Inv", safe)
         end)
-        task.wait(0.15)
+        task.wait()
     end
     task.wait(0.3)
     if oldCF then
