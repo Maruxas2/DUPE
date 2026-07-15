@@ -478,6 +478,37 @@ toggle.Parent = mainScroll
 
 roundCorner(toggle, UDim.new(0, 6))
 
+-- Dupe method: "market" (bundled payload) or "safe" (in-game Safe dupe).
+local dupeMethod = "market"
+
+local methodBtn = Instance.new("TextButton")
+methodBtn.Name = "DupeMethod"
+methodBtn.Size = UDim2.new(1, -16, 0, 34)
+methodBtn.LayoutOrder = 3
+methodBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+methodBtn.BorderSizePixel = 0
+methodBtn.AutoButtonColor = true
+methodBtn.Font = Enum.Font.GothamBold
+methodBtn.TextSize = 13
+methodBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+methodBtn.Text = "Dupe Method: Market"
+methodBtn.Parent = mainScroll
+
+roundCorner(methodBtn, UDim.new(0, 6))
+
+local function setMethod(m)
+    dupeMethod = (m == "safe") and "safe" or "market"
+    methodBtn.Text = dupeMethod == "safe" and "Dupe Method: Safe" or "Dupe Method: Market"
+end
+
+methodBtn.MouseButton1Click:Connect(function()
+    setMethod(dupeMethod == "market" and "safe" or "market")
+end)
+
+regFlag("dupeMethod", function()
+    return dupeMethod
+end, setMethod)
+
 local maxMoney = Instance.new("TextButton")
 maxMoney.Name = "MaxMoney"
 maxMoney.Size = UDim2.new(1, -16, 0, 40)
@@ -1029,9 +1060,76 @@ selector.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Locate the player's working Safe in the map.
+local function getWorkingSafe()
+    local map = workspace:FindFirstChild("1# Map")
+    if not map then
+        return nil
+    end
+    for _, v in ipairs(map:GetChildren()) do
+        if v.Name == "Safe" and v:FindFirstChild("ChestClicker") then
+            return v
+        end
+    end
+    return nil
+end
+
+-- Safe dupe: store the item in the in-game Safe, then rapidly pull it back out
+-- via the Inventory "Change" remote so a duplicate is left behind.
+local function runSafeDupe(toolName)
+    local RS = game:GetService("ReplicatedStorage")
+    local inv = RS:FindFirstChild("Inventory")
+    local player = Players.LocalPlayer
+    local char = player and player.Character
+    if not char or not inv then
+        return
+    end
+    if not toolName then
+        local held = char:FindFirstChildOfClass("Tool")
+        toolName = held and held.Name
+    end
+    if not toolName then
+        return
+    end
+    local safe = getWorkingSafe()
+    if not safe or not safe:FindFirstChild("ChestClicker") then
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local oldCF = hrp and hrp.CFrame
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        pcall(function()
+            hum:UnequipTools()
+        end)
+    end
+    teleportTo(safe.ChestClicker.CFrame + Vector3.new(0, 3, 0))
+    task.wait(0.3)
+    pcall(function()
+        inv:FireServer("Change", toolName, "Backpack", safe)
+    end)
+    task.wait(0.4)
+    -- Spam the take-out before the server settles to leave a duplicate.
+    for _ = 1, 3 do
+        pcall(function()
+            inv:FireServer("Change", toolName, "Inv", safe)
+        end)
+        task.wait(0.15)
+    end
+    task.wait(0.3)
+    if oldCF then
+        teleportTo(oldCF)
+    end
+end
+
 local function safeRun()
     local tool = equipSelected()
-    local ok, err = pcall(runDupe, tool)
+    local ok, err
+    if dupeMethod == "safe" then
+        ok, err = pcall(runSafeDupe, selectedItem)
+    else
+        ok, err = pcall(runDupe, tool)
+    end
     if not ok then
         warn("[DUPE] execution error: " .. tostring(err))
         status.Text = "Status: ON (last run errored)\n"
