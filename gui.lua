@@ -4454,7 +4454,7 @@ do
     popup.Name = "UpdatePopup"
     popup.AnchorPoint = Vector2.new(0.5, 0.5)
     popup.Position = UDim2.fromScale(0.5, 0.5)
-    popup.Size = UDim2.fromOffset(300, 200)
+    popup.Size = UDim2.fromOffset(320, 380)
     popup.BackgroundColor3 = Color3.fromRGB(24, 20, 34)
     popup.BorderSizePixel = 0
     popup.ZIndex = 50
@@ -4478,19 +4478,53 @@ do
     popupTitle.ZIndex = 51
     popupTitle.Parent = popup
 
+    local popupScroll = Instance.new("ScrollingFrame")
+    popupScroll.BackgroundTransparency = 1
+    popupScroll.BorderSizePixel = 0
+    popupScroll.Position = UDim2.new(0, 12, 0, 46)
+    popupScroll.Size = UDim2.new(1, -24, 1, -92)
+    popupScroll.ScrollBarThickness = 4
+    popupScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    popupScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    popupScroll.ZIndex = 51
+    popupScroll.Parent = popup
+
     local popupBody = Instance.new("TextLabel")
     popupBody.BackgroundTransparency = 1
-    popupBody.Position = UDim2.new(0, 12, 0, 46)
-    popupBody.Size = UDim2.new(1, -24, 1, -86)
+    popupBody.Position = UDim2.new(0, 0, 0, 0)
+    popupBody.Size = UDim2.new(1, -6, 0, 0)
+    popupBody.AutomaticSize = Enum.AutomaticSize.Y
     popupBody.Font = Enum.Font.Gotham
     popupBody.TextSize = 13
     popupBody.TextColor3 = Color3.fromRGB(220, 220, 230)
     popupBody.TextWrapped = true
     popupBody.TextXAlignment = Enum.TextXAlignment.Left
     popupBody.TextYAlignment = Enum.TextYAlignment.Top
-    popupBody.Text = "What's new:\n- Gun tab with weapon mods\n- Spray Paint bullet graffiti\n- Hide Name overhead tag\n- 55 themes\n\nOpen/close the menu with Right Shift."
+    popupBody.Text = table.concat({
+        "What's new:",
+        "- Auto Dupe every 8s (Market / Safe method selector)",
+        "- Inventory dropdown to pick the item to dupe",
+        "- Auto Drop spare copies (G key)",
+        "- Max Money + Clean Filthy Money",
+        "- Construction Farm + Studio Farm",
+        "- Teleports tab (Bypass / Tween / CFrame)",
+        "- Auto Buy tab",
+        "- Anti Kick",
+        "- Player tab: Infinite Stamina/Hunger/Sleep/Health,",
+        "  No Fall/Knockback, RGB Player, Hide Name + more",
+        "- Players tab + Player Utils (spectate, bring, kill, god)",
+        "- Visuals/ESP tab (boxes, names, tracers, chams)",
+        "- Gun tab: weapon mods, RGB Gun, Spray Paint graffiti",
+        "- Gun tab FX: Shoot Fire Balls, Bullet Tracers,",
+        "  Shoot UFOs, Shoot Waves, Shoot Hurricanes",
+        "- Settings: save/load configs, 55 themes,",
+        "  rebindable menu key (default Right Shift)",
+        "- Phone-style Galaxy S26 UI, draggable",
+        "",
+        "Open/close the menu with Right Shift.",
+    }, "\n")
     popupBody.ZIndex = 51
-    popupBody.Parent = popup
+    popupBody.Parent = popupScroll
 
     local popupClose = Instance.new("TextButton")
     popupClose.AnchorPoint = Vector2.new(0.5, 1)
