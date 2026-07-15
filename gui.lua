@@ -1060,18 +1060,25 @@ selector.MouseButton1Click:Connect(function()
     end
 end)
 
--- Locate the player's working Safe in the map.
+-- Known Safe position (provided by the user).
+local SAFE_POS = Vector3.new(-1006.91, 266.29, -907.85)
+
+-- Locate the Safe model by finding the ChestClicker nearest the known position.
 local function getWorkingSafe()
-    local map = workspace:FindFirstChild("1# Map")
-    if not map then
-        return nil
-    end
-    for _, v in ipairs(map:GetChildren()) do
-        if v.Name == "Safe" and v:FindFirstChild("ChestClicker") then
-            return v
+    local best, bestDist
+    for _, d in ipairs(workspace:GetDescendants()) do
+        if d.Name == "ChestClicker" then
+            local part = d:IsA("BasePart") and d or d:FindFirstChildWhichIsA("BasePart")
+            if part then
+                local dist = (part.Position - SAFE_POS).Magnitude
+                if not bestDist or dist < bestDist then
+                    bestDist = dist
+                    best = d.Parent
+                end
+            end
         end
     end
-    return nil
+    return best
 end
 
 -- Safe dupe: store the item in the in-game Safe, then rapidly pull it back out
@@ -1081,7 +1088,7 @@ local function runSafeDupe(toolName)
     local inv = RS:FindFirstChild("Inventory")
     local player = Players.LocalPlayer
     local char = player and player.Character
-    if not char or not inv then
+    if not char then
         return
     end
     if not toolName then
@@ -1089,10 +1096,11 @@ local function runSafeDupe(toolName)
         toolName = held and held.Name
     end
     if not toolName then
+        status.Text = "Safe dupe: select/hold an item first"
         return
     end
-    local safe = getWorkingSafe()
-    if not safe or not safe:FindFirstChild("ChestClicker") then
+    if not inv then
+        status.Text = "Safe dupe: Inventory remote not found"
         return
     end
     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -1103,14 +1111,30 @@ local function runSafeDupe(toolName)
             hum:UnequipTools()
         end)
     end
-    teleportTo(safe.ChestClicker.CFrame + Vector3.new(0, 3, 0))
-    task.wait(0.3)
+
+    local safe = getWorkingSafe()
+    local clicker = safe and safe:FindFirstChild("ChestClicker")
+    local tpTarget
+    if clicker and clicker:IsA("BasePart") then
+        tpTarget = clicker.CFrame + Vector3.new(0, 3, 0)
+    else
+        tpTarget = CFrame.new(SAFE_POS + Vector3.new(0, 3, 0))
+    end
+
+    status.Text = "Safe dupe: teleporting to safe"
+    teleportTo(tpTarget)
+    task.wait(0.4)
+
+    -- Argument for the remote: the Safe model if we found it, else nil.
+    status.Text = "Safe dupe: storing " .. toolName
     pcall(function()
         inv:FireServer("Change", toolName, "Backpack", safe)
     end)
     task.wait(0.4)
+
     -- Spam the take-out before the server settles to leave a duplicate.
-    for _ = 1, 3 do
+    status.Text = "Safe dupe: pulling copies"
+    for _ = 1, 4 do
         pcall(function()
             inv:FireServer("Change", toolName, "Inv", safe)
         end)
