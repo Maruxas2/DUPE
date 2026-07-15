@@ -1106,10 +1106,15 @@ local function runSafeDupe(toolName)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     local oldCF = hrp and hrp.CFrame
     local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
+    -- Keep the tool EQUIPPED (in the Character, not the Backpack) so the client
+    -- holds a live reference while we store the item — the safe then registers a
+    -- copy from the backpack entry, duplicating.
+    local held = findTool(toolName)
+    if hum and held and held.Parent ~= char then
         pcall(function()
-            hum:UnequipTools()
+            hum:EquipTool(held)
         end)
+        task.wait(0.15)
     end
 
     local safe = getWorkingSafe()
