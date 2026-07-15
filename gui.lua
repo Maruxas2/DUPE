@@ -2044,102 +2044,6 @@ for i, m in ipairs(PLAYER_MODS) do
     makeModToggle(m[1], m[2], i)
 end
 
--- Random Outfit: load a random real player's avatar onto your character, with a
--- random-color fallback if the lookup fails.
-local randomFitBtn = Instance.new("TextButton")
-randomFitBtn.Name = "RandomOutfit"
-randomFitBtn.Size = UDim2.new(1, -4, 0, 30)
-randomFitBtn.BackgroundColor3 = Color3.fromRGB(120, 70, 220)
-randomFitBtn.BorderSizePixel = 0
-randomFitBtn.AutoButtonColor = true
-randomFitBtn.Font = Enum.Font.GothamBold
-randomFitBtn.TextSize = 13
-randomFitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-randomFitBtn.Text = "Random Outfit"
-randomFitBtn.LayoutOrder = #PLAYER_MODS + 1
-randomFitBtn.Parent = playerList
-roundCorner(randomFitBtn, UDim.new(0, 6))
-
--- Known active user IDs with real outfits (random ids are often terminated and
--- fail the lookup); we pick from these so a full outfit reliably loads.
-local OUTFIT_IDS = {
-    1, 156, 261, 2032622, 968808, 13365322, 261, 1783919, 1151759, 8836275,
-    375226, 55221030, 20396268, 121415623, 168259635, 100013531, 261, 5205577,
-    41590028, 42598862, 45023965, 89430294, 32345429, 26372559, 108484756,
-}
-
--- Preserve the character's current skin: snapshot the BodyColors and restore
--- them after the outfit applies (so clothes/accessories/masks change, skin doesn't).
-local function snapshotBodyColors(char)
-    local bc = char:FindFirstChildOfClass("BodyColors")
-    if not bc then
-        return nil
-    end
-    return {
-        HeadColor3 = bc.HeadColor3,
-        TorsoColor3 = bc.TorsoColor3,
-        LeftArmColor3 = bc.LeftArmColor3,
-        RightArmColor3 = bc.RightArmColor3,
-        LeftLegColor3 = bc.LeftLegColor3,
-        RightLegColor3 = bc.RightLegColor3,
-    }
-end
-
-local function restoreBodyColors(char, snap)
-    if not snap then
-        return
-    end
-    local bc = char:FindFirstChildOfClass("BodyColors")
-    if not bc then
-        bc = Instance.new("BodyColors")
-        bc.Parent = char
-    end
-    bc.HeadColor3 = snap.HeadColor3
-    bc.TorsoColor3 = snap.TorsoColor3
-    bc.LeftArmColor3 = snap.LeftArmColor3
-    bc.RightArmColor3 = snap.RightArmColor3
-    bc.LeftLegColor3 = snap.LeftLegColor3
-    bc.RightLegColor3 = snap.RightLegColor3
-end
-
-local fitBusy = false
-randomFitBtn.MouseButton1Click:Connect(function()
-    if fitBusy then
-        return
-    end
-    fitBusy = true
-    task.spawn(function()
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if not hum then
-            fitBusy = false
-            return
-        end
-        local snap = snapshotBodyColors(char)
-        local applied = false
-        local tries = 0
-        while not applied and tries < 10 do
-            tries = tries + 1
-            local id = OUTFIT_IDS[math.random(1, #OUTFIT_IDS)]
-            local ok, desc = pcall(function()
-                return Players:GetHumanoidDescriptionFromUserId(id)
-            end)
-            if ok and desc then
-                local ok2 = pcall(function()
-                    hum:ApplyDescription(desc)
-                end)
-                if ok2 then
-                    applied = true
-                end
-            end
-        end
-        -- Keep the user's skin color regardless of the outfit that loaded.
-        task.wait(0.1)
-        restoreBodyColors(LocalPlayer.Character or char, snap)
-        fitBusy = false
-    end)
-end)
-
 -- ---- Effect handlers (ported from valary) ----
 -- Hide Name: hide your character's name and show purple "Galaxy S26" instead.
 local galaxyTag
@@ -3010,6 +2914,141 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     local char = LocalPlayer.Character
     if char and char:FindFirstChildOfClass("Tool") then
         drawTracer()
+    end
+end)
+
+-- ---- Shoot UFOs: launch a flying saucer when you fire (client-side) ----
+local ufosEnabled = false
+local ufoBtn = Instance.new("TextButton")
+ufoBtn.Name = "Gun_UFOs"
+ufoBtn.Size = UDim2.new(1, -4, 0, 30)
+ufoBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+ufoBtn.BorderSizePixel = 0
+ufoBtn.AutoButtonColor = true
+ufoBtn.Font = Enum.Font.Gotham
+ufoBtn.TextSize = 13
+ufoBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+ufoBtn.Text = "Shoot UFOs: OFF"
+ufoBtn.TextTruncate = Enum.TextTruncate.AtEnd
+ufoBtn.LayoutOrder = #GUN_MODS + 5
+ufoBtn.Parent = gunList
+roundCorner(ufoBtn, UDim.new(0, 6))
+
+local function setUfos(v)
+    ufosEnabled = v == true
+    if ufosEnabled then
+        ufoBtn.Text = "Shoot UFOs: ON"
+        ufoBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        ufoBtn.Text = "Shoot UFOs: OFF"
+        ufoBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end
+
+ufoBtn.MouseButton1Click:Connect(function()
+    setUfos(not ufosEnabled)
+end)
+
+regFlag("gun:UFOs", function()
+    return ufosEnabled
+end, setUfos)
+
+local function launchUfo()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return
+    end
+    local cam = workspace.CurrentCamera
+    if not cam then
+        return
+    end
+    local head = char:FindFirstChild("Head")
+    local mouse = UserInputService:GetMouseLocation()
+    local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+    local dir = ray.Direction.Unit
+    local startPos = (head and head.Position or hrp.Position) + dir * 4
+
+    local ufo = Instance.new("Model")
+    ufo.Name = "GalaxyUFO"
+
+    local disc = Instance.new("Part")
+    disc.Shape = Enum.PartType.Cylinder
+    disc.Size = Vector3.new(0.6, 6, 6)
+    disc.Color = Color3.fromRGB(120, 130, 150)
+    disc.Material = Enum.Material.Metal
+    disc.Anchored = true
+    disc.CanCollide = false
+    disc.CanQuery = false
+    disc.CFrame = CFrame.new(startPos) * CFrame.Angles(0, 0, math.rad(90))
+    disc.Parent = ufo
+
+    local dome = Instance.new("Part")
+    dome.Shape = Enum.PartType.Ball
+    dome.Size = Vector3.new(3, 3, 3)
+    dome.Color = Color3.fromRGB(120, 220, 255)
+    dome.Material = Enum.Material.Neon
+    dome.Transparency = 0.25
+    dome.Anchored = true
+    dome.CanCollide = false
+    dome.CanQuery = false
+    dome.CFrame = CFrame.new(startPos + Vector3.new(0, 1, 0))
+    dome.Parent = ufo
+
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(120, 220, 255)
+    light.Range = 16
+    light.Brightness = 4
+    light.Parent = dome
+
+    ufo.PrimaryPart = disc
+    ufo.Parent = workspace
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { char, ufo }
+
+    local speed = 120
+    local life = 0
+    local spin = 0
+    local conn
+    conn = RunService.Heartbeat:Connect(function(dt)
+        if not ufo.Parent or not disc.Parent then
+            conn:Disconnect()
+            return
+        end
+        local step = dir * speed * dt
+        local res = workspace:Raycast(disc.Position, step, params)
+        life = life + dt
+        if res or life > 6 then
+            local exp = Instance.new("Explosion")
+            exp.BlastPressure = 0
+            exp.BlastRadius = 8
+            exp.DestroyJointRadiusPercent = 0
+            exp.Position = res and res.Position or disc.Position
+            exp.Parent = workspace
+            conn:Disconnect()
+            ufo:Destroy()
+        else
+            spin = spin + dt * 6
+            local center = disc.Position + step
+            disc.CFrame = CFrame.new(center) * CFrame.Angles(0, spin, math.rad(90))
+            dome.CFrame = CFrame.new(center + Vector3.new(0, 1, 0))
+        end
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not ufosEnabled then
+        return
+    end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Tool") then
+        launchUfo()
     end
 end)
 
