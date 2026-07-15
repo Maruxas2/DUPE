@@ -1125,18 +1125,24 @@ local function runSafeDupe(toolName)
     teleportTo(tpTarget)
     task.wait(0.4)
 
-    -- Race the store against the take: fire the store, then immediately spam the
-    -- take-out in the same window so the server hands the item back while a copy
-    -- is still registered inside the safe (leaves a duplicate).
-    status.Text = "Safe dupe: duping " .. toolName
+    -- The server enforces a ~1s cooldown between inventory swaps, so store then
+    -- take with >1s spacing (spamming in one frame is rejected). This retrieves
+    -- the item back rather than leaving it stuck in the safe.
+    status.Text = "Safe dupe: storing " .. toolName
     pcall(function()
         inv:FireServer("Change", toolName, "Backpack", safe)
     end)
-    for _ = 1, 8 do
+    task.wait(1.15)
+
+    status.Text = "Safe dupe: pulling " .. toolName
+    for _ = 1, 3 do
         pcall(function()
             inv:FireServer("Change", toolName, "Inv", safe)
         end)
-        task.wait()
+        task.wait(1.15)
+        if findTool(toolName) then
+            break
+        end
     end
     task.wait(0.3)
     if oldCF then
