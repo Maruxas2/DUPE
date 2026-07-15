@@ -2044,6 +2044,70 @@ for i, m in ipairs(PLAYER_MODS) do
     makeModToggle(m[1], m[2], i)
 end
 
+-- Random Outfit: load a random real player's avatar onto your character, with a
+-- random-color fallback if the lookup fails.
+local randomFitBtn = Instance.new("TextButton")
+randomFitBtn.Name = "RandomOutfit"
+randomFitBtn.Size = UDim2.new(1, -4, 0, 30)
+randomFitBtn.BackgroundColor3 = Color3.fromRGB(120, 70, 220)
+randomFitBtn.BorderSizePixel = 0
+randomFitBtn.AutoButtonColor = true
+randomFitBtn.Font = Enum.Font.GothamBold
+randomFitBtn.TextSize = 13
+randomFitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+randomFitBtn.Text = "Random Outfit"
+randomFitBtn.LayoutOrder = #PLAYER_MODS + 1
+randomFitBtn.Parent = playerList
+roundCorner(randomFitBtn, UDim.new(0, 6))
+
+local function randomizeColors(char)
+    for _, obj in ipairs(char:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name ~= "HumanoidRootPart" then
+            obj.Color = Color3.fromHSV(math.random(), 0.7 + math.random() * 0.3, 0.7 + math.random() * 0.3)
+        elseif obj:IsA("Shirt") then
+            obj.Color3 = Color3.fromHSV(math.random(), 1, 1)
+        elseif obj:IsA("Pants") then
+            obj.Color3 = Color3.fromHSV(math.random(), 1, 1)
+        end
+    end
+end
+
+local fitBusy = false
+randomFitBtn.MouseButton1Click:Connect(function()
+    if fitBusy then
+        return
+    end
+    fitBusy = true
+    task.spawn(function()
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum then
+            fitBusy = false
+            return
+        end
+        local applied = false
+        for _ = 1, 5 do
+            local id = math.random(1, 300000000)
+            local ok, desc = pcall(function()
+                return Players:GetHumanoidDescriptionFromUserId(id)
+            end)
+            if ok and desc then
+                local ok2 = pcall(function()
+                    hum:ApplyDescription(desc)
+                end)
+                if ok2 then
+                    applied = true
+                    break
+                end
+            end
+        end
+        if not applied then
+            randomizeColors(char)
+        end
+        fitBusy = false
+    end)
+end)
+
 -- ---- Effect handlers (ported from valary) ----
 -- Hide Name: hide your character's name and show purple "Galaxy S26" instead.
 local galaxyTag
