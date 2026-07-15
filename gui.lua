@@ -1106,15 +1106,10 @@ local function runSafeDupe(toolName)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     local oldCF = hrp and hrp.CFrame
     local hum = char:FindFirstChildOfClass("Humanoid")
-    -- Keep the tool EQUIPPED (in the Character, not the Backpack) so the client
-    -- holds a live reference while we store the item — the safe then registers a
-    -- copy from the backpack entry, duplicating.
-    local held = findTool(toolName)
-    if hum and held and held.Parent ~= char then
+    if hum then
         pcall(function()
-            hum:EquipTool(held)
+            hum:UnequipTools()
         end)
-        task.wait(0.15)
     end
 
     local safe = getWorkingSafe()
@@ -1131,23 +1126,24 @@ local function runSafeDupe(toolName)
     task.wait(0.4)
 
     -- The server enforces a ~1s cooldown between inventory swaps, so store then
-    -- take with >1s spacing (spamming in one frame is rejected). This retrieves
-    -- the item back rather than leaving it stuck in the safe.
+    -- take with a wide (>1.5s) margin — network latency makes a 1.15s gap trip
+    -- the cooldown and leave the gun stuck in the safe. Verify retrieval and
+    -- keep retrying so the item is never lost.
     status.Text = "Safe dupe: storing " .. toolName
     pcall(function()
         inv:FireServer("Change", toolName, "Backpack", safe)
     end)
-    task.wait(1.15)
+    task.wait(1.6)
 
     status.Text = "Safe dupe: pulling " .. toolName
-    for _ = 1, 3 do
-        pcall(function()
-            inv:FireServer("Change", toolName, "Inv", safe)
-        end)
-        task.wait(1.15)
+    for _ = 1, 6 do
         if findTool(toolName) then
             break
         end
+        pcall(function()
+            inv:FireServer("Change", toolName, "Inv", safe)
+        end)
+        task.wait(1.6)
     end
     task.wait(0.3)
     if oldCF then
