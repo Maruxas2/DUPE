@@ -3052,6 +3052,236 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- ---- Shoot Waves: launch a huge water wave when you fire (client-side) ----
+local wavesEnabled = false
+local waveBtn = Instance.new("TextButton")
+waveBtn.Name = "Gun_Waves"
+waveBtn.Size = UDim2.new(1, -4, 0, 30)
+waveBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+waveBtn.BorderSizePixel = 0
+waveBtn.AutoButtonColor = true
+waveBtn.Font = Enum.Font.Gotham
+waveBtn.TextSize = 13
+waveBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+waveBtn.Text = "Shoot Waves: OFF"
+waveBtn.TextTruncate = Enum.TextTruncate.AtEnd
+waveBtn.LayoutOrder = #GUN_MODS + 6
+waveBtn.Parent = gunList
+roundCorner(waveBtn, UDim.new(0, 6))
+
+local function setWaves(v)
+    wavesEnabled = v == true
+    if wavesEnabled then
+        waveBtn.Text = "Shoot Waves: ON"
+        waveBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        waveBtn.Text = "Shoot Waves: OFF"
+        waveBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end
+
+waveBtn.MouseButton1Click:Connect(function()
+    setWaves(not wavesEnabled)
+end)
+
+regFlag("gun:Waves", function()
+    return wavesEnabled
+end, setWaves)
+
+local function launchWave()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return
+    end
+    local cam = workspace.CurrentCamera
+    if not cam then
+        return
+    end
+    local head = char:FindFirstChild("Head")
+    local mouse = UserInputService:GetMouseLocation()
+    local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+    local dir = ray.Direction.Unit
+    local startPos = (head and head.Position or hrp.Position) + dir * 6
+
+    local wave = Instance.new("Part")
+    wave.Name = "GalaxyWave"
+    wave.Shape = Enum.PartType.Cylinder
+    wave.Size = Vector3.new(4, 40, 40)
+    wave.Color = Color3.fromRGB(40, 130, 220)
+    wave.Material = Enum.Material.Water
+    wave.Transparency = 0.35
+    wave.Anchored = true
+    wave.CanCollide = false
+    wave.CanQuery = false
+    wave.CFrame = CFrame.lookAt(startPos, startPos + dir) * CFrame.Angles(0, math.rad(90), 0)
+    wave.Parent = workspace
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { char, wave }
+
+    local speed = 90
+    local life = 0
+    local grow = 40
+    local conn
+    conn = RunService.Heartbeat:Connect(function(dt)
+        if not wave.Parent then
+            conn:Disconnect()
+            return
+        end
+        local step = dir * speed * dt
+        local res = workspace:Raycast(wave.Position, step, params)
+        life = life + dt
+        grow = grow + dt * 30
+        if res or life > 5 then
+            conn:Disconnect()
+            wave:Destroy()
+        else
+            wave.Size = Vector3.new(4, grow, grow)
+            wave.CFrame = CFrame.lookAt(wave.Position + step, wave.Position + step + dir) * CFrame.Angles(0, math.rad(90), 0)
+        end
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not wavesEnabled then
+        return
+    end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Tool") then
+        launchWave()
+    end
+end)
+
+-- ---- Shoot Hurricanes: launch a spinning storm when you fire (client-side) ----
+local hurricanesEnabled = false
+local hurBtn = Instance.new("TextButton")
+hurBtn.Name = "Gun_Hurricanes"
+hurBtn.Size = UDim2.new(1, -4, 0, 30)
+hurBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+hurBtn.BorderSizePixel = 0
+hurBtn.AutoButtonColor = true
+hurBtn.Font = Enum.Font.Gotham
+hurBtn.TextSize = 13
+hurBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+hurBtn.Text = "Shoot Hurricanes: OFF"
+hurBtn.TextTruncate = Enum.TextTruncate.AtEnd
+hurBtn.LayoutOrder = #GUN_MODS + 7
+hurBtn.Parent = gunList
+roundCorner(hurBtn, UDim.new(0, 6))
+
+local function setHurricanes(v)
+    hurricanesEnabled = v == true
+    if hurricanesEnabled then
+        hurBtn.Text = "Shoot Hurricanes: ON"
+        hurBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        hurBtn.Text = "Shoot Hurricanes: OFF"
+        hurBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end
+
+hurBtn.MouseButton1Click:Connect(function()
+    setHurricanes(not hurricanesEnabled)
+end)
+
+regFlag("gun:Hurricanes", function()
+    return hurricanesEnabled
+end, setHurricanes)
+
+local function launchHurricane()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return
+    end
+    local cam = workspace.CurrentCamera
+    if not cam then
+        return
+    end
+    local head = char:FindFirstChild("Head")
+    local mouse = UserInputService:GetMouseLocation()
+    local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+    local dir = ray.Direction.Unit
+    local startPos = (head and head.Position or hrp.Position) + dir * 6
+
+    local storm = Instance.new("Part")
+    storm.Name = "GalaxyHurricane"
+    storm.Shape = Enum.PartType.Cylinder
+    storm.Size = Vector3.new(50, 24, 24)
+    storm.Color = Color3.fromRGB(90, 100, 120)
+    storm.Material = Enum.Material.SmoothPlastic
+    storm.Transparency = 0.4
+    storm.Anchored = true
+    storm.CanCollide = false
+    storm.CanQuery = false
+    storm.CFrame = CFrame.new(startPos) * CFrame.Angles(0, 0, math.rad(90))
+    storm.Parent = workspace
+
+    local smoke = Instance.new("Smoke")
+    smoke.Color = Color3.fromRGB(120, 130, 150)
+    smoke.Opacity = 0.6
+    smoke.Size = 10
+    smoke.RiseVelocity = 0
+    smoke.Parent = storm
+
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(150, 170, 200)
+    light.Range = 18
+    light.Brightness = 2
+    light.Parent = storm
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { char, storm }
+
+    local speed = 70
+    local life = 0
+    local spin = 0
+    local conn
+    conn = RunService.Heartbeat:Connect(function(dt)
+        if not storm.Parent then
+            conn:Disconnect()
+            return
+        end
+        local step = dir * speed * dt
+        local res = workspace:Raycast(storm.Position, step, params)
+        life = life + dt
+        if res or life > 6 then
+            local exp = Instance.new("Explosion")
+            exp.BlastPressure = 0
+            exp.BlastRadius = 14
+            exp.DestroyJointRadiusPercent = 0
+            exp.Position = res and res.Position or storm.Position
+            exp.Parent = workspace
+            conn:Disconnect()
+            storm:Destroy()
+        else
+            spin = spin + dt * 12
+            storm.CFrame = CFrame.new(storm.Position + step) * CFrame.Angles(spin, 0, math.rad(90))
+        end
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not hurricanesEnabled then
+        return
+    end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Tool") then
+        launchHurricane()
+    end
+end)
+
 -- Re-apply mods whenever a tool is equipped or added.
 local function hookChar(char)
     char.ChildAdded:Connect(function(v)
