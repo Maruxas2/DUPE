@@ -3704,4 +3704,76 @@ refreshConfigList()
 end
 
 selectTab("main")
+
+-- Startup update popup (auto-closes after 15 seconds).
+do
+    local popup = Instance.new("Frame")
+    popup.Name = "UpdatePopup"
+    popup.AnchorPoint = Vector2.new(0.5, 0.5)
+    popup.Position = UDim2.fromScale(0.5, 0.5)
+    popup.Size = UDim2.fromOffset(300, 200)
+    popup.BackgroundColor3 = Color3.fromRGB(24, 20, 34)
+    popup.BorderSizePixel = 0
+    popup.ZIndex = 50
+    popup.Parent = screenGui
+    roundCorner(popup, UDim.new(0, 14))
+
+    local popupStroke = Instance.new("UIStroke")
+    popupStroke.Thickness = 2
+    popupStroke.Color = Color3.fromRGB(150, 90, 240)
+    popupStroke.Parent = popup
+
+    local popupTitle = Instance.new("TextLabel")
+    popupTitle.BackgroundTransparency = 1
+    popupTitle.Position = UDim2.new(0, 12, 0, 12)
+    popupTitle.Size = UDim2.new(1, -24, 0, 30)
+    popupTitle.Font = Enum.Font.GothamBlack
+    popupTitle.TextSize = 20
+    popupTitle.TextColor3 = Color3.fromRGB(190, 140, 255)
+    popupTitle.TextXAlignment = Enum.TextXAlignment.Left
+    popupTitle.Text = "Galaxy S26 - Update"
+    popupTitle.ZIndex = 51
+    popupTitle.Parent = popup
+
+    local popupBody = Instance.new("TextLabel")
+    popupBody.BackgroundTransparency = 1
+    popupBody.Position = UDim2.new(0, 12, 0, 46)
+    popupBody.Size = UDim2.new(1, -24, 1, -86)
+    popupBody.Font = Enum.Font.Gotham
+    popupBody.TextSize = 13
+    popupBody.TextColor3 = Color3.fromRGB(220, 220, 230)
+    popupBody.TextWrapped = true
+    popupBody.TextXAlignment = Enum.TextXAlignment.Left
+    popupBody.TextYAlignment = Enum.TextYAlignment.Top
+    popupBody.Text = "What's new:\n- Gun tab with weapon mods\n- Spray Paint bullet graffiti\n- Hide Name overhead tag\n- 55 themes\n\nOpen/close the menu with Right Shift."
+    popupBody.ZIndex = 51
+    popupBody.Parent = popup
+
+    local popupClose = Instance.new("TextButton")
+    popupClose.AnchorPoint = Vector2.new(0.5, 1)
+    popupClose.Position = UDim2.new(0.5, 0, 1, -12)
+    popupClose.Size = UDim2.new(1, -24, 0, 28)
+    popupClose.BackgroundColor3 = Color3.fromRGB(120, 70, 220)
+    popupClose.BorderSizePixel = 0
+    popupClose.Font = Enum.Font.GothamBold
+    popupClose.TextSize = 13
+    popupClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+    popupClose.Text = "Close"
+    popupClose.ZIndex = 51
+    popupClose.Parent = popup
+    roundCorner(popupClose, UDim.new(0, 8))
+
+    local closed = false
+    local function closePopup()
+        if closed then
+            return
+        end
+        closed = true
+        popup:Destroy()
+    end
+
+    popupClose.MouseButton1Click:Connect(closePopup)
+    task.delay(15, closePopup)
+end
+
 print("[Galaxy S26] menu loaded. Interval " .. RUN_INTERVAL .. "s.")
