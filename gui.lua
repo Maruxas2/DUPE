@@ -2060,18 +2060,46 @@ randomFitBtn.LayoutOrder = #PLAYER_MODS + 1
 randomFitBtn.Parent = playerList
 roundCorner(randomFitBtn, UDim.new(0, 6))
 
--- Copy the player's current skin/body colors onto a description so applying a
--- random outfit changes clothes/accessories/face but never the skin color.
-local function keepBodyColors(target, source)
-    if not target or not source then
+-- Known active user IDs with real outfits (random ids are often terminated and
+-- fail the lookup); we pick from these so a full outfit reliably loads.
+local OUTFIT_IDS = {
+    1, 156, 261, 2032622, 968808, 13365322, 261, 1783919, 1151759, 8836275,
+    375226, 55221030, 20396268, 121415623, 168259635, 100013531, 261, 5205577,
+    41590028, 42598862, 45023965, 89430294, 32345429, 26372559, 108484756,
+}
+
+-- Preserve the character's current skin: snapshot the BodyColors and restore
+-- them after the outfit applies (so clothes/accessories/masks change, skin doesn't).
+local function snapshotBodyColors(char)
+    local bc = char:FindFirstChildOfClass("BodyColors")
+    if not bc then
+        return nil
+    end
+    return {
+        HeadColor3 = bc.HeadColor3,
+        TorsoColor3 = bc.TorsoColor3,
+        LeftArmColor3 = bc.LeftArmColor3,
+        RightArmColor3 = bc.RightArmColor3,
+        LeftLegColor3 = bc.LeftLegColor3,
+        RightLegColor3 = bc.RightLegColor3,
+    }
+end
+
+local function restoreBodyColors(char, snap)
+    if not snap then
         return
     end
-    target.HeadColor = source.HeadColor
-    target.TorsoColor = source.TorsoColor
-    target.LeftArmColor = source.LeftArmColor
-    target.RightArmColor = source.RightArmColor
-    target.LeftLegColor = source.LeftLegColor
-    target.RightLegColor = source.RightLegColor
+    local bc = char:FindFirstChildOfClass("BodyColors")
+    if not bc then
+        bc = Instance.new("BodyColors")
+        bc.Parent = char
+    end
+    bc.HeadColor3 = snap.HeadColor3
+    bc.TorsoColor3 = snap.TorsoColor3
+    bc.LeftArmColor3 = snap.LeftArmColor3
+    bc.RightArmColor3 = snap.RightArmColor3
+    bc.LeftLegColor3 = snap.LeftLegColor3
+    bc.RightLegColor3 = snap.RightLegColor3
 end
 
 local fitBusy = false
@@ -2087,25 +2115,27 @@ randomFitBtn.MouseButton1Click:Connect(function()
             fitBusy = false
             return
         end
-        local current
-        pcall(function()
-            current = hum:GetAppliedDescription()
-        end)
-        for _ = 1, 6 do
-            local id = math.random(1, 300000000)
+        local snap = snapshotBodyColors(char)
+        local applied = false
+        local tries = 0
+        while not applied and tries < 10 do
+            tries = tries + 1
+            local id = OUTFIT_IDS[math.random(1, #OUTFIT_IDS)]
             local ok, desc = pcall(function()
                 return Players:GetHumanoidDescriptionFromUserId(id)
             end)
             if ok and desc then
-                keepBodyColors(desc, current)
                 local ok2 = pcall(function()
                     hum:ApplyDescription(desc)
                 end)
                 if ok2 then
-                    break
+                    applied = true
                 end
             end
         end
+        -- Keep the user's skin color regardless of the outfit that loaded.
+        task.wait(0.1)
+        restoreBodyColors(LocalPlayer.Character or char, snap)
         fitBusy = false
     end)
 end)
