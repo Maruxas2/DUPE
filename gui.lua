@@ -1106,10 +1106,13 @@ local function runSafeDupe(toolName)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     local oldCF = hrp and hrp.CFrame
     local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
+    -- Equip the tool so it's a live held instance we can also drop.
+    local held = findTool(toolName)
+    if hum and held and held.Parent ~= char then
         pcall(function()
-            hum:UnequipTools()
+            hum:EquipTool(held)
         end)
+        task.wait(0.15)
     end
 
     local safe = getWorkingSafe()
@@ -1125,16 +1128,19 @@ local function runSafeDupe(toolName)
     teleportTo(tpTarget)
     task.wait(0.4)
 
-    -- The server enforces a ~1s cooldown between inventory swaps, so store then
-    -- take with a wide (>1.5s) margin — network latency makes a 1.15s gap trip
-    -- the cooldown and leave the gun stuck in the safe. Verify retrieval and
-    -- keep retrying so the item is never lost.
-    status.Text = "Safe dupe: storing " .. toolName
+    -- Race the store against a drop: fire the store, then instantly press the
+    -- drop key (G) in the same frame window. If both land, the item is stored
+    -- into the safe AND dropped to the world, so retrieving from the safe leaves
+    -- you with two copies. If only one lands, nothing is lost (either pick the
+    -- dropped one back up or retrieve from the safe below).
+    status.Text = "Safe dupe: duping " .. toolName
     pcall(function()
         inv:FireServer("Change", toolName, "Backpack", safe)
     end)
+    pressDropKey()
     task.wait(1.6)
 
+    -- Retrieve from the safe (respect the ~1s swap cooldown, retry until back).
     status.Text = "Safe dupe: pulling " .. toolName
     for _ = 1, 6 do
         if findTool(toolName) then
