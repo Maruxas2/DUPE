@@ -2539,6 +2539,124 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- ---- Shoot Fire Balls: launch a flaming projectile when you fire (client-side) ----
+local fireballsEnabled = false
+local fireballBtn = Instance.new("TextButton")
+fireballBtn.Name = "Gun_Fireballs"
+fireballBtn.Size = UDim2.new(1, -4, 0, 30)
+fireballBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+fireballBtn.BorderSizePixel = 0
+fireballBtn.AutoButtonColor = true
+fireballBtn.Font = Enum.Font.Gotham
+fireballBtn.TextSize = 13
+fireballBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+fireballBtn.Text = "Shoot Fire Balls: OFF"
+fireballBtn.TextTruncate = Enum.TextTruncate.AtEnd
+fireballBtn.LayoutOrder = #GUN_MODS + 3
+fireballBtn.Parent = gunList
+roundCorner(fireballBtn, UDim.new(0, 6))
+
+local function setFireballs(v)
+    fireballsEnabled = v == true
+    if fireballsEnabled then
+        fireballBtn.Text = "Shoot Fire Balls: ON"
+        fireballBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        fireballBtn.Text = "Shoot Fire Balls: OFF"
+        fireballBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end
+
+fireballBtn.MouseButton1Click:Connect(function()
+    setFireballs(not fireballsEnabled)
+end)
+
+regFlag("gun:Fireballs", function()
+    return fireballsEnabled
+end, setFireballs)
+
+local function launchFireball()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return
+    end
+    local cam = workspace.CurrentCamera
+    if not cam then
+        return
+    end
+    local head = char:FindFirstChild("Head")
+    local mouse = UserInputService:GetMouseLocation()
+    local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+    local dir = ray.Direction.Unit
+    local startPos = (head and head.Position or hrp.Position) + dir * 3
+
+    local ball = Instance.new("Part")
+    ball.Shape = Enum.PartType.Ball
+    ball.Size = Vector3.new(2, 2, 2)
+    ball.Color = Color3.fromRGB(255, 120, 20)
+    ball.Material = Enum.Material.Neon
+    ball.Anchored = true
+    ball.CanCollide = false
+    ball.CanQuery = false
+    ball.CFrame = CFrame.new(startPos)
+    ball.Parent = workspace
+
+    local fire = Instance.new("Fire")
+    fire.Heat = 20
+    fire.Size = 8
+    fire.Parent = ball
+
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(255, 140, 40)
+    light.Range = 14
+    light.Brightness = 4
+    light.Parent = ball
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { char, ball }
+
+    local speed = 150
+    local life = 0
+    local conn
+    conn = RunService.Heartbeat:Connect(function(dt)
+        if not ball.Parent then
+            conn:Disconnect()
+            return
+        end
+        local step = dir * speed * dt
+        local res = workspace:Raycast(ball.Position, step, params)
+        life = life + dt
+        if res or life > 5 then
+            local exp = Instance.new("Explosion")
+            exp.BlastPressure = 0
+            exp.BlastRadius = 6
+            exp.DestroyJointRadiusPercent = 0
+            exp.Position = res and res.Position or ball.Position
+            exp.Parent = workspace
+            conn:Disconnect()
+            ball:Destroy()
+        else
+            ball.CFrame = ball.CFrame + step
+        end
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not fireballsEnabled then
+        return
+    end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Tool") then
+        launchFireball()
+    end
+end)
+
 -- Re-apply mods whenever a tool is equipped or added.
 local function hookChar(char)
     char.ChildAdded:Connect(function(v)
