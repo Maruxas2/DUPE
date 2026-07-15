@@ -2060,16 +2060,18 @@ randomFitBtn.LayoutOrder = #PLAYER_MODS + 1
 randomFitBtn.Parent = playerList
 roundCorner(randomFitBtn, UDim.new(0, 6))
 
-local function randomizeColors(char)
-    for _, obj in ipairs(char:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name ~= "HumanoidRootPart" then
-            obj.Color = Color3.fromHSV(math.random(), 0.7 + math.random() * 0.3, 0.7 + math.random() * 0.3)
-        elseif obj:IsA("Shirt") then
-            obj.Color3 = Color3.fromHSV(math.random(), 1, 1)
-        elseif obj:IsA("Pants") then
-            obj.Color3 = Color3.fromHSV(math.random(), 1, 1)
-        end
+-- Copy the player's current skin/body colors onto a description so applying a
+-- random outfit changes clothes/accessories/face but never the skin color.
+local function keepBodyColors(target, source)
+    if not target or not source then
+        return
     end
+    target.HeadColor = source.HeadColor
+    target.TorsoColor = source.TorsoColor
+    target.LeftArmColor = source.LeftArmColor
+    target.RightArmColor = source.RightArmColor
+    target.LeftLegColor = source.LeftLegColor
+    target.RightLegColor = source.RightLegColor
 end
 
 local fitBusy = false
@@ -2085,24 +2087,24 @@ randomFitBtn.MouseButton1Click:Connect(function()
             fitBusy = false
             return
         end
-        local applied = false
-        for _ = 1, 5 do
+        local current
+        pcall(function()
+            current = hum:GetAppliedDescription()
+        end)
+        for _ = 1, 6 do
             local id = math.random(1, 300000000)
             local ok, desc = pcall(function()
                 return Players:GetHumanoidDescriptionFromUserId(id)
             end)
             if ok and desc then
+                keepBodyColors(desc, current)
                 local ok2 = pcall(function()
                     hum:ApplyDescription(desc)
                 end)
                 if ok2 then
-                    applied = true
                     break
                 end
             end
-        end
-        if not applied then
-            randomizeColors(char)
         end
         fitBusy = false
     end)
