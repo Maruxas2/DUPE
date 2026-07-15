@@ -2681,6 +2681,109 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- ---- Bullet Tracers: draw a smoky purple line where you shoot (client-side) ----
+local tracersEnabled = false
+local tracerBtn = Instance.new("TextButton")
+tracerBtn.Name = "Gun_Tracers"
+tracerBtn.Size = UDim2.new(1, -4, 0, 30)
+tracerBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+tracerBtn.BorderSizePixel = 0
+tracerBtn.AutoButtonColor = true
+tracerBtn.Font = Enum.Font.Gotham
+tracerBtn.TextSize = 13
+tracerBtn.TextColor3 = Color3.fromRGB(230, 230, 235)
+tracerBtn.Text = "Bullet Tracers: OFF"
+tracerBtn.TextTruncate = Enum.TextTruncate.AtEnd
+tracerBtn.LayoutOrder = #GUN_MODS + 4
+tracerBtn.Parent = gunList
+roundCorner(tracerBtn, UDim.new(0, 6))
+
+local function setTracers(v)
+    tracersEnabled = v == true
+    if tracersEnabled then
+        tracerBtn.Text = "Bullet Tracers: ON"
+        tracerBtn.BackgroundColor3 = Color3.fromRGB(46, 120, 70)
+    else
+        tracerBtn.Text = "Bullet Tracers: OFF"
+        tracerBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end
+
+tracerBtn.MouseButton1Click:Connect(function()
+    setTracers(not tracersEnabled)
+end)
+
+regFlag("gun:Tracers", function()
+    return tracersEnabled
+end, setTracers)
+
+local function drawTracer()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return
+    end
+    local cam = workspace.CurrentCamera
+    if not cam then
+        return
+    end
+    local head = char:FindFirstChild("Head")
+    local mouse = UserInputService:GetMouseLocation()
+    local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+    local dir = ray.Direction.Unit
+    local origin = (head and head.Position or hrp.Position) + dir * 2
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { char }
+    local result = workspace:Raycast(origin, dir * 800, params)
+    local endPos = result and result.Position or (origin + dir * 800)
+
+    local dist = (endPos - origin).Magnitude
+    local mid = origin + (endPos - origin) * 0.5
+
+    local beam = Instance.new("Part")
+    beam.Anchored = true
+    beam.CanCollide = false
+    beam.CanQuery = false
+    beam.Material = Enum.Material.Neon
+    beam.Color = Color3.fromRGB(160, 60, 240)
+    beam.Transparency = 0.15
+    beam.Shape = Enum.PartType.Cylinder
+    beam.Size = Vector3.new(dist, 0.3, 0.3)
+    beam.CFrame = CFrame.lookAt(mid, endPos) * CFrame.Angles(0, math.rad(90), 0)
+    beam.Parent = workspace
+
+    local smoke = Instance.new("Smoke")
+    smoke.Color = Color3.fromRGB(150, 70, 230)
+    smoke.Opacity = 0.35
+    smoke.RiseVelocity = 2
+    smoke.Size = 1.5
+    smoke.Parent = beam
+
+    task.spawn(function()
+        for i = 1, 12 do
+            beam.Transparency = 0.15 + (i / 12) * 0.85
+            task.wait(0.03)
+        end
+        beam:Destroy()
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not tracersEnabled then
+        return
+    end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Tool") then
+        drawTracer()
+    end
+end)
+
 -- Re-apply mods whenever a tool is equipped or added.
 local function hookChar(char)
     char.ChildAdded:Connect(function(v)
