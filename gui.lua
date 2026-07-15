@@ -1837,6 +1837,7 @@ local PLAYER_MODS = {
     { "DisableBloodEffects", "Disable Blood Effects" },
     { "DisableCameras", "Disable Cameras" },
     { "HideName", "Hide Name" },
+    { "RGBPlayer", "RGB Player" },
 }
 
 local playerTitle = Instance.new("TextLabel")
@@ -1947,6 +1948,29 @@ local function updateHideName()
     end
 end
 RunService.Heartbeat:Connect(updateHideName)
+
+-- RGB Player: rainbow-cycle the whole character's body parts.
+local rgbPlayerHue = 0
+RunService.RenderStepped:Connect(function()
+    if not modOn("RGBPlayer") then
+        return
+    end
+    local char = LocalPlayer.Character
+    if not char then
+        return
+    end
+    rgbPlayerHue = (rgbPlayerHue + 0.008) % 1
+    local col = Color3.fromHSV(rgbPlayerHue, 1, 1)
+    for _, obj in ipairs(char:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name ~= "HumanoidRootPart" then
+            obj.Color = col
+        elseif obj:IsA("Shirt") then
+            obj.Color3 = col
+        elseif obj:IsA("Pants") then
+            obj.Color3 = col
+        end
+    end
+end)
 
 local deathFrame
 
