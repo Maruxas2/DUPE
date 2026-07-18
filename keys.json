@@ -1,0 +1,14 @@
+{
+  "keys": {
+    "EXAMPLE-KEY-REPLACE-ME": {
+      "hwid": "PASTE-BUYER-HWID-HERE",
+      "expires": 0,
+      "note": "example entry — delete me"
+    },
+    "DEMO-LIFETIME-1234": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "unbound demo key (works on any HWID) — remove for real use"
+    }
+  }
+}
