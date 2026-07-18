@@ -1,14 +1,104 @@
 {
   "keys": {
-    "EXAMPLE-KEY-REPLACE-ME": {
-      "hwid": "PASTE-BUYER-HWID-HERE",
-      "expires": 0,
-      "note": "example entry — delete me"
-    },
-    "DEMO-LIFETIME-1234": {
+    "DUPE-ME7P-HW1D-K1NR": {
       "hwid": "any",
       "expires": 0,
-      "note": "unbound demo key (works on any HWID) — remove for real use"
+      "note": "lifetime"
+    },
+    "DUPE-WP55-ZJTI-IOR2": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-FJ69-7645-2M9M": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-HLHX-72GS-DG79": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-ORZP-IHW4-SJDT": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-WOEF-L08E-LIMM": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-GYE2-PCO8-C4Y9": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-LM6T-DS5K-34TR": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-7TRU-XM58-UZ6X": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-UHML-4RFA-PP3P": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-LGO8-32OR-DMD8": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-R7UV-BT7Q-K2Q2": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-DNJS-992R-B9KZ": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-VUJ7-E2JH-4LMU": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-KJLF-IBHE-Z5ET": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-IY7G-76PC-6QWO": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-B345-8T3F-Y0JZ": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-5SIW-1SZT-M7BW": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-NINP-CUOY-R5R7": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
+    },
+    "DUPE-R9S9-2VXG-WKQT": {
+      "hwid": "any",
+      "expires": 0,
+      "note": "lifetime"
     }
   }
 }
