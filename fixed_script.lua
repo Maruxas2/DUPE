@@ -1545,6 +1545,97 @@ end,
         end)
     end)
 
+    do
+        local SrnyxaState = { AutoCatch = false, CatchRange = 50, VisualsEnabled = false, SpeedEnabled = false, SpeedValue = 1.0 }
+        local srnyxaBall = nil
+        local fovVisual = nil
+
+        local function makeVisual()
+            if fovVisual then fovVisual:Destroy() end
+            fovVisual = Instance.new("Part")
+            fovVisual.Anchored = true
+            fovVisual.CanCollide = false
+            fovVisual.Material = Enum.Material.ForceField
+            fovVisual.Shape = Enum.PartType.Ball
+            fovVisual.Transparency = 0.7
+            fovVisual.Parent = workspace
+        end
+
+        MainTab:CreateSection("SRNYXA")
+
+        MainTab:CreateToggle({
+            Name = "Force Catch",
+            CurrentValue = false,
+            Flag = "SrnyxaForceCatch",
+            Callback = function(v) SrnyxaState.AutoCatch = v end,
+        })
+        MainTab:CreateToggle({
+            Name = "Catch Zone Visual",
+            CurrentValue = false,
+            Flag = "SrnyxaVisual",
+            Callback = function(v) SrnyxaState.VisualsEnabled = v end,
+        })
+        MainTab:CreateToggle({
+            Name = "Blatant Speed",
+            CurrentValue = false,
+            Flag = "SrnyxaSpeed",
+            Callback = function(v) SrnyxaState.SpeedEnabled = v end,
+        })
+        MainTab:CreateSlider({
+            Name = "Catch Range",
+            Range = {5, 150},
+            Increment = 1,
+            CurrentValue = 50,
+            Flag = "SrnyxaCatchRange",
+            Callback = function(v) SrnyxaState.CatchRange = v end,
+        })
+        MainTab:CreateSlider({
+            Name = "Speed Value",
+            Range = {0.1, 5},
+            Increment = 0.1,
+            CurrentValue = 1,
+            Flag = "SrnyxaSpeedValue",
+            Callback = function(v) SrnyxaState.SpeedValue = v end,
+        })
+
+        ConnectionManager:Add("SrnyxaBallScan", RunService.Heartbeat:Connect(function()
+            if not (SrnyxaState.AutoCatch or SrnyxaState.VisualsEnabled) then return end
+            if srnyxaBall and srnyxaBall.Parent then return end
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and (v.Name:lower():find("ball") or v.Name:lower():find("football")) then
+                    srnyxaBall = v
+                    break
+                end
+            end
+        end))
+
+        ConnectionManager:Add("SrnyxaRender", RunService.RenderStepped:Connect(function(dt)
+            local char = plr.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+            if srnyxaBall and srnyxaBall.Parent and SrnyxaState.VisualsEnabled then
+                if not fovVisual then makeVisual() end
+                fovVisual.CFrame = srnyxaBall.CFrame
+                fovVisual.Size = Vector3.new(SrnyxaState.CatchRange, SrnyxaState.CatchRange, SrnyxaState.CatchRange)
+                fovVisual.Color = (hrp and (hrp.Position - srnyxaBall.Position).Magnitude < SrnyxaState.CatchRange) and Color3.fromRGB(0, 255, 125) or Color3.fromRGB(145, 70, 255)
+            elseif fovVisual then
+                fovVisual:Destroy()
+                fovVisual = nil
+            end
+
+            if SrnyxaState.AutoCatch and srnyxaBall and hrp then
+                if (hrp.Position - srnyxaBall.Position).Magnitude < SrnyxaState.CatchRange then
+                    srnyxaBall.AssemblyLinearVelocity = Vector3.zero
+                    srnyxaBall.CFrame = hrp.CFrame * CFrame.new(0, 0, -1.8)
+                end
+            end
+
+            if SrnyxaState.SpeedEnabled and hrp and char:FindFirstChild("Humanoid") and char.Humanoid.MoveDirection.Magnitude > 0 then
+                hrp.CFrame = hrp.CFrame + (char.Humanoid.MoveDirection * SrnyxaState.SpeedValue * (dt * 60))
+            end
+        end))
+    end
+
 else
     local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 
@@ -4101,6 +4192,97 @@ end
         end
     end)
     
+    do
+        local SrnyxaState = { AutoCatch = false, CatchRange = 50, VisualsEnabled = false, SpeedEnabled = false, SpeedValue = 1.0 }
+        local srnyxaBall = nil
+        local fovVisual = nil
+
+        local function makeVisual()
+            if fovVisual then fovVisual:Destroy() end
+            fovVisual = Instance.new("Part")
+            fovVisual.Anchored = true
+            fovVisual.CanCollide = false
+            fovVisual.Material = Enum.Material.ForceField
+            fovVisual.Shape = Enum.PartType.Ball
+            fovVisual.Transparency = 0.7
+            fovVisual.Parent = workspace
+        end
+
+        local SrnyxaGroup = Tabs.Main:AddRightGroupbox('SRNYXA')
+        SrnyxaGroup:AddToggle('SrnyxaForceCatch', {
+            Text = 'Force Catch',
+            Default = false,
+            Tooltip = 'Snap the ball into your hands within range',
+            Callback = function(v) SrnyxaState.AutoCatch = v end,
+        })
+        SrnyxaGroup:AddToggle('SrnyxaVisual', {
+            Text = 'Catch Zone Visual',
+            Default = false,
+            Tooltip = 'Show a sphere around the ball sized to the catch range',
+            Callback = function(v) SrnyxaState.VisualsEnabled = v end,
+        })
+        SrnyxaGroup:AddToggle('SrnyxaSpeed', {
+            Text = 'Blatant Speed',
+            Default = false,
+            Callback = function(v) SrnyxaState.SpeedEnabled = v end,
+        })
+        SrnyxaGroup:AddSlider('SrnyxaCatchRange', {
+            Text = 'Catch Range',
+            Default = 50,
+            Min = 5,
+            Max = 150,
+            Rounding = 0,
+            Compact = false,
+            Callback = function(v) SrnyxaState.CatchRange = v end,
+        })
+        SrnyxaGroup:AddSlider('SrnyxaSpeedValue', {
+            Text = 'Speed Value',
+            Default = 1,
+            Min = 0.1,
+            Max = 5,
+            Rounding = 1,
+            Compact = false,
+            Callback = function(v) SrnyxaState.SpeedValue = v end,
+        })
+
+        ConnectionManager:Add("SrnyxaBallScan", RunService.Heartbeat:Connect(function()
+            if not (SrnyxaState.AutoCatch or SrnyxaState.VisualsEnabled) then return end
+            if srnyxaBall and srnyxaBall.Parent then return end
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and (v.Name:lower():find("ball") or v.Name:lower():find("football")) then
+                    srnyxaBall = v
+                    break
+                end
+            end
+        end))
+
+        ConnectionManager:Add("SrnyxaRender", RunService.RenderStepped:Connect(function(dt)
+            local char = plr.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+            if srnyxaBall and srnyxaBall.Parent and SrnyxaState.VisualsEnabled then
+                if not fovVisual then makeVisual() end
+                fovVisual.CFrame = srnyxaBall.CFrame
+                fovVisual.Size = Vector3.new(SrnyxaState.CatchRange, SrnyxaState.CatchRange, SrnyxaState.CatchRange)
+                fovVisual.Color = (hrp and (hrp.Position - srnyxaBall.Position).Magnitude < SrnyxaState.CatchRange) and Color3.fromRGB(0, 255, 125) or Color3.fromRGB(145, 70, 255)
+            elseif fovVisual then
+                fovVisual:Destroy()
+                fovVisual = nil
+            end
+
+            if SrnyxaState.AutoCatch and srnyxaBall and hrp then
+                if (hrp.Position - srnyxaBall.Position).Magnitude < SrnyxaState.CatchRange then
+                    srnyxaBall.AssemblyLinearVelocity = Vector3.zero
+                    srnyxaBall.CFrame = hrp.CFrame * CFrame.new(0, 0, -1.8)
+                end
+            end
+
+            if SrnyxaState.SpeedEnabled and hrp and char:FindFirstChild("Humanoid") and char.Humanoid.MoveDirection.Magnitude > 0 then
+                hrp.CFrame = hrp.CFrame + (char.Humanoid.MoveDirection * SrnyxaState.SpeedValue * (dt * 60))
+            end
+        end))
+    end
+
     local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
     MenuGroup:AddButton('Unload', function() Library:Unload() end)
     MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'LeftControl', NoUI = true, Text = 'Menu keybind' })
