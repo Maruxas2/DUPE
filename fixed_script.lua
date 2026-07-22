@@ -1546,7 +1546,7 @@ end,
     end)
 
     do
-        local SrnyxaState = { AutoCatch = false, CatchRange = 50, VisualsEnabled = false, SpeedEnabled = false, SpeedValue = 1.0 }
+        local SrnyxaState = { AutoCatch = false, CatchRange = 50, VisualsEnabled = false, SpeedEnabled = false, SpeedValue = 1.0, InfJump = false }
         local srnyxaBall = nil
         local fovVisual = nil
 
@@ -1581,6 +1581,21 @@ end,
             Flag = "SrnyxaSpeed",
             Callback = function(v) SrnyxaState.SpeedEnabled = v end,
         })
+        MainTab:CreateToggle({
+            Name = "Infinite Jump",
+            CurrentValue = false,
+            Flag = "SrnyxaInfJump",
+            Callback = function(v) SrnyxaState.InfJump = v end,
+        })
+
+        ConnectionManager:Add("SrnyxaInfJump", UserInputService.JumpRequest:Connect(function()
+            if not SrnyxaState.InfJump then return end
+            local c = plr.Character
+            local root = c and c:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.Velocity = Vector3.new(root.Velocity.X, 55, root.Velocity.Z)
+            end
+        end))
         MainTab:CreateSlider({
             Name = "Catch Range",
             Range = {5, 150},
@@ -4193,7 +4208,7 @@ end
     end)
     
     do
-        local SrnyxaState = { AutoCatch = false, CatchRange = 50, VisualsEnabled = false, SpeedEnabled = false, SpeedValue = 1.0 }
+        local SrnyxaState = { AutoCatch = false, CatchRange = 50, VisualsEnabled = false, SpeedEnabled = false, SpeedValue = 1.0, InfJump = false }
         local srnyxaBall = nil
         local fovVisual = nil
 
@@ -4226,6 +4241,20 @@ end
             Default = false,
             Callback = function(v) SrnyxaState.SpeedEnabled = v end,
         })
+        SrnyxaGroup:AddToggle('SrnyxaInfJump', {
+            Text = 'Infinite Jump',
+            Default = false,
+            Callback = function(v) SrnyxaState.InfJump = v end,
+        })
+
+        ConnectionManager:Add("SrnyxaInfJump", UserInputService.JumpRequest:Connect(function()
+            if not SrnyxaState.InfJump then return end
+            local c = plr.Character
+            local root = c and c:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.Velocity = Vector3.new(root.Velocity.X, 55, root.Velocity.Z)
+            end
+        end))
         SrnyxaGroup:AddSlider('SrnyxaCatchRange', {
             Text = 'Catch Range',
             Default = 50,
