@@ -228,169 +228,6 @@ if isMobile then
         game:GetService("Debris"):AddItem(bv, 0.2)
     end
 
-    local Players = game:GetService("Players")
-    local lp = Players.LocalPlayer
-
-local TweenService = game:GetService("TweenService")
-local lp = game:GetService("Players").LocalPlayer
-
-getgenv().turkeyFarmEnabled = getgenv().turkeyFarmEnabled or false
-getgenv().turkeySpeed = getgenv().turkeySpeed or 0.3
-
-local turkeyFarmConnection = nil
-local isFarming = false
-
-local function getChar()
-return lp.Character, lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-end
-
-local function basket()
-local id = lp.Replicated.TeamID.Value
-return id == "AwayTeam" and Vector3.new(137, 372, 0) or Vector3.new(-138, 372, 2)
-end
-
-local function getMG()
-for _, v in ipairs(workspace.MiniGames:GetChildren()) do
-    local r = v:FindFirstChild("Replicated")
-    if r and r:FindFirstChild("Turkeys") then
-        return r
-    end
-end
-return nil
-end
-
-local function isTurkeyValid(turkey)
-return turkey and turkey.Parent and turkey:IsDescendantOf(workspace)
-end
-
-local function tweenToPosition(hrp, targetPos, speed, turkey)
-speed = speed or 0.5
-local distance = (hrp.Position - targetPos).Magnitude
-local tweenSpeed = math.max(speed, distance / 100)
-
-local tweenInfo = TweenInfo.new(
-    tweenSpeed,
-    Enum.EasingStyle.Linear,
-    Enum.EasingDirection.InOut
-)
-
-local goal = {CFrame = CFrame.new(targetPos)}
-local tween = TweenService:Create(hrp, tweenInfo, goal)
-
-tween:Play()
-
-if turkey then
-    local connection
-    local startY = hrp.Position.Y
-    connection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not isTurkeyValid(turkey) then
-            tween:Cancel()
-            connection:Disconnect()
-            return
-        end
-        
-        if hrp.Position.Y < (startY - 10) then
-            tween:Cancel()
-            connection:Disconnect()
-            return
-        end
-    end)
-    
-    tween.Completed:Wait()
-    connection:Disconnect()
-    
-    if hrp.Position.Y < (startY - 10) then
-        return false
-    end
-    
-    return isTurkeyValid(turkey)
-else
-    tween.Completed:Wait()
-    return true
-end
-end
-
-game:GetService("RunService").Heartbeat:Connect(function()
-if getgenv().turkeyFarmEnabled then
-    if not turkeyFarmConnection then
-        turkeyFarmConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if not getgenv().turkeyFarmEnabled then
-                if turkeyFarmConnection then
-                    turkeyFarmConnection:Disconnect()
-                    turkeyFarmConnection = nil
-                end
-                return
-            end
-            
-            if isFarming then return end
-            isFarming = true
-            
-            task.spawn(function()
-                local char, hrp = getChar()
-                if not char or not hrp then 
-                    isFarming = false
-                    return 
-                end
-                
-                local replicated = getMG()
-                if not replicated then 
-                    isFarming = false
-                    return 
-                end
-                
-                local turkeyList = replicated:FindFirstChild("Turkeys")
-                if not turkeyList then 
-                    isFarming = false
-                    return 
-                end
-                
-                local turkeys = {}
-                for _, turkey in pairs(turkeyList:GetChildren()) do
-                    if turkey:IsA("BasePart") and isTurkeyValid(turkey) then
-                        table.insert(turkeys, turkey)
-                    end
-                end
-                
-                for _, turkey in ipairs(turkeys) do
-                    if not getgenv().turkeyFarmEnabled then break end
-                    
-                    if isTurkeyValid(turkey) then
-                        pcall(function()
-                            -- Check if turkey is too far below character
-                            local char, hrp = getChar()
-                            if not hrp then return end
-                            
-                            local yDifference = hrp.Position.Y - turkey.Position.Y
-                            if yDifference > 15 then
-                                -- Turkey is more than 15 studs below, skip it
-                                return
-                            end
-                            
-                            local stillValid = tweenToPosition(hrp, turkey.Position, getgenv().turkeySpeed, turkey)
-                            
-                            if stillValid and isTurkeyValid(turkey) then
-                                firetouchinterest(hrp, turkey, 0)
-                                firetouchinterest(hrp, turkey, 1)
-                                task.wait(0.1)
-                                
-                                tweenToPosition(hrp, basket(), getgenv().turkeySpeed, nil)
-                                task.wait(0.1)
-                            end
-                        end)
-                    end
-                end
-                
-                isFarming = false
-            end)
-        end)
-    end
-else
-    if turkeyFarmConnection then
-        turkeyFarmConnection:Disconnect()
-        turkeyFarmConnection = nil
-    end
-end
-end)
 
     local function setupJumpBoost(character)
         local root = character:WaitForChild("HumanoidRootPart")
@@ -679,13 +516,13 @@ end)
     end
 
     local Window = Rayfield:CreateWindow({
-        Name = "Kali Hub | NFL Universe [Mobile]",
+        Name = "Eclipse | NFL Universe [Mobile]",
         LoadingTitle = "Loading NFL Universe Script",
-        LoadingSubtitle = "by Kali Hub",
+        LoadingSubtitle = "by Eclipse",
         ConfigurationSaving = {
             Enabled = true,
             FolderName = "NFLUniverse",
-            FileName = "KaliHub"
+            FileName = "Eclipse"
         }
     })
     
@@ -1564,41 +1401,6 @@ end,
         end,
     })
 
-local TurkeySpeedSlider = Auto:CreateSlider({
-Name = "Cframe Speed",
-Range = {0.1, 2},
-Increment = 0.01,
-CurrentValue = 0.3,
-Flag = "TurkeySpeed",
-Callback = function(value)
-    getgenv().turkeySpeed = value
-end,
-})
-
-local TurkeyFarm = Auto:CreateToggle({
-Name = "Turkey Autofarm (EVENT)",
-CurrentValue = false,
-Flag = "TurkeyFarm",
-Callback = function(value)
-    getgenv().turkeyFarmEnabled = value
-    
-    if value then
-        Rayfield:Notify({
-            Title = "Turkey Farm",
-            Content = "Turkey Farm Started 🦃",
-            Duration = 3,
-            Image = 4483362458,
-        })
-    else
-        Rayfield:Notify({
-            Title = "Turkey Farm",
-            Content = "Turkey Farm Stopped",
-            Duration = 2,
-            Image = 4483362458,
-        })
-    end
-end,
-})
 
     local AntiAFKToggle = Auto:CreateToggle({
         Name = "Anti AFK",
@@ -1818,8 +1620,6 @@ else
     Cfg.diveBoostEnabled = false
     Cfg.CanBoost = true
     Cfg.qbAimbotEnabled = false
-    local turkeyFarmEnabled = false
-    local turkeyFarmConnection = nil
     Cfg.lastThrowDebug = nil
     Cfg.currentArcYDebugConn = nil
     Cfg.playerTrack = {}
@@ -1955,7 +1755,7 @@ else
             "HWID: " .. playerHWID .. "\nReason: " .. (reason or "Violation of Terms"), 
             true)
         
-        player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Kali Hub.\nReason: MY FAULT OG " .. (reason or "Violation of Terms"))
+        player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Eclipse.\nReason: MY FAULT OG " .. (reason or "Violation of Terms"))
         return
     end
 
@@ -1966,7 +1766,7 @@ else
                     "HWID: " .. playerHWID .. "\nKicked during active session", 
                     true)
                 
-                player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Kali Hub.")
+                player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Eclipse.")
                 return
             end
         end
@@ -2721,7 +2521,7 @@ else
     end)
 
     local Window = Library:CreateWindow({
-        Title = 'Kali Hub | NFL Universe',
+        Title = 'Eclipse | NFL Universe',
         Center = true,
         AutoShow = true,
         TabPadding = 8,
@@ -3842,7 +3642,7 @@ end
 
     local KickGroup = Tabs.Automatic:AddLeftGroupbox('Misc')
     local SackGroup = Tabs.Automatic:AddRightGroupbox('Sacking')
-    local TurkeyGroup = Tabs.Automatic:AddRightGroupbox('Turkey Farm')
+    local ExtrasGroup = Tabs.Automatic:AddRightGroupbox('Extras')
 
     KickGroup:AddToggle('KickAimbot', {
         Text = 'Kick Aimbot (L)',
@@ -4130,7 +3930,7 @@ end
             "HWID: " .. playerHWID .. "\nReason: " .. (reason or "Violation of Terms"), 
             true)
         
-        player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Kali Hub.\nReason: MY FAULT OG " .. (reason or "Violation of Terms"))
+        player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Eclipse.\nReason: MY FAULT OG " .. (reason or "Violation of Terms"))
         return
     end
 
@@ -4141,7 +3941,7 @@ end
                     "HWID: " .. playerHWID .. "\nKicked during active session", 
                     true)
                 
-                player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Kali Hub.")
+                player:Kick("⛔ Access Denied\n\nYou have been blacklisted from Eclipse.")
                 return
             end
         end
@@ -4253,171 +4053,7 @@ end
 
 
 
-local turkeyFarmSpeed = 0.3
-local turkeyFarmEnabled = false
-local turkeyFarmConnection = nil
-local isFarming = false
-
-local function getChar()
-return lp.Character, lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-end
-
-local function basket()
-local id = lp.Replicated.TeamID.Value
-return id == "AwayTeam" and Vector3.new(137, 372, 0) or Vector3.new(-138, 372, 2)
-end
-
-local function getMG()
-for _, v in ipairs(workspace.MiniGames:GetChildren()) do
-    local r = v:FindFirstChild("Replicated")
-    if r and r:FindFirstChild("Turkeys") then
-        return r
-    end
-end
-return nil
-end
-
-local function isTurkeyValid(turkey)
-return turkey and turkey.Parent and turkey:IsDescendantOf(workspace)
-end
-
-local function tweenToPosition(hrp, targetPos, speed, turkey)
-speed = speed or 0.5
-local distance = (hrp.Position - targetPos).Magnitude
-local tweenSpeed = math.max(speed, distance / 100)
-
-local tweenInfo = TweenInfo.new(
-    tweenSpeed,
-    Enum.EasingStyle.Linear,
-    Enum.EasingDirection.InOut
-)
-
-local goal = {CFrame = CFrame.new(targetPos)}
-local tween = TweenService:Create(hrp, tweenInfo, goal)
-
-tween:Play()
-
-if turkey then
-    local connection
-    local startY = hrp.Position.Y
-    connection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not isTurkeyValid(turkey) then
-            tween:Cancel()
-            connection:Disconnect()
-            return
-        end
-        
-        if hrp.Position.Y < (startY - 10) then
-            tween:Cancel()
-            connection:Disconnect()
-            return
-        end
-    end)
-    
-    tween.Completed:Wait()
-    connection:Disconnect()
-    
-    if hrp.Position.Y < (startY - 10) then
-        return false
-    end
-    
-    return isTurkeyValid(turkey)
-else
-    tween.Completed:Wait()
-    return true
-end
-end
-
-TurkeyGroup:AddToggle('TurkeyFarm', {
-Text = 'Turkey Autofarm (EVENT)',
-Default = false,
-Tooltip = 'Automatically collects turkeys in thanksgiving minigame',
-Callback = function(Value)
-    turkeyFarmEnabled = Value
-    
-    if turkeyFarmConnection then
-        turkeyFarmConnection:Disconnect()
-        turkeyFarmConnection = nil
-    end
-    
-    if Value then
-        Library:Notify('Turkey Farm Started', 3)
-        
-        turkeyFarmConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if not turkeyFarmEnabled then
-                return
-            end
-            
-            if isFarming then return end
-            isFarming = true
-            
-            task.spawn(function()
-                local char, hrp = getChar()
-                if not char or not hrp then 
-                    isFarming = false
-                    return 
-                end
-                
-                local replicated = getMG()
-                if not replicated then 
-                    isFarming = false
-                    return 
-                end
-                
-                local turkeyList = replicated:FindFirstChild("Turkeys")
-                if not turkeyList then 
-                    isFarming = false
-                    return 
-                end
-                
-                local turkeys = {}
-                for _, turkey in pairs(turkeyList:GetChildren()) do
-                    if turkey:IsA("BasePart") and isTurkeyValid(turkey) then
-                        table.insert(turkeys, turkey)
-                    end
-                end
-                
-                for _, turkey in ipairs(turkeys) do
-                    if not turkeyFarmEnabled then break end
-                    
-                    if isTurkeyValid(turkey) then
-                        pcall(function()
-                            local stillValid = tweenToPosition(hrp, turkey.Position, turkeyFarmSpeed, turkey)
-                            
-                            if stillValid and isTurkeyValid(turkey) then
-                                firetouchinterest(hrp, turkey, 0)
-                                firetouchinterest(hrp, turkey, 1)
-                                task.wait(0.1)
-                                
-                                tweenToPosition(hrp, basket(), 0.5, nil)
-                                task.wait(0.1)
-                            end
-                        end)
-                    end
-                end
-                
-                isFarming = false
-            end)
-        end)
-    else
-        Library:Notify('Turkey Farm Stopped', 2)
-    end
-end
-})
-
-TurkeyGroup:AddSlider('TurkeySpeed', {
-Text = 'Turkey Farm Speed',
-Default = 0.3,
-Min = 0.1,
-Max = 1,
-Rounding = 1,
-Compact = false,
-Callback = function(Value)
-    turkeyFarmSpeed = Value
-end
-})
-
-    TurkeyGroup:AddToggle('AntiAFK', {
+    ExtrasGroup:AddToggle('AntiAFK', {
         Text = 'Anti-AFK',
         Default = false,
         Tooltip = 'Prevents you from being kicked for inactivity',
@@ -4478,14 +4114,14 @@ end
     SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
 
     ThemeManager:SetFolder('NFLUniverse')
-    SaveManager:SetFolder('NFLUniverse/KaliHub')
+    SaveManager:SetFolder('NFLUniverse/Eclipse')
 
     SaveManager:BuildConfigSection(Tabs['UI Settings'])
     ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
     SaveManager:LoadAutoloadConfig()
 
-    Library:Notify('Kali Hub loaded successfully!', 5)
+    Library:Notify('Eclipse loaded successfully!', 5)
 
     game.Players.PlayerRemoving:Connect(function(p)
         if p == plr then
