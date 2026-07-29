@@ -12595,7 +12595,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(400, 470)
+main.Size = UDim2.fromOffset(400, 556)
 main.BackgroundColor3 = COLORS.bg
 main.BorderSizePixel = 0
 main.Visible = false
@@ -12671,7 +12671,7 @@ local minimizeButton = makeHeaderButton("—", -76, COLORS.cardHover)
 -- body
 local list = Instance.new("ScrollingFrame")
 list.Name = "List"
-list.Size = UDim2.new(1, -28, 1, -202)
+list.Size = UDim2.new(1, -28, 1, -344)
 list.Position = UDim2.fromOffset(14, 140)
 list.BackgroundTransparency = 1
 list.BorderSizePixel = 0
@@ -12750,6 +12750,7 @@ versionLabel.TextXAlignment = Enum.TextXAlignment.Right
 versionLabel.Parent = footer
 
 -- script cards
+local nameLabels = {}
 for i, entry in ipairs(SCRIPTS) do
     local card = Instance.new("TextButton")
     card.Name = entry.name
@@ -12801,6 +12802,7 @@ for i, entry in ipairs(SCRIPTS) do
     name.TextSize = 14
     name.TextXAlignment = Enum.TextXAlignment.Left
     name.Parent = card
+    nameLabels[entry] = name
 
     if hasDesc then
         local desc = Instance.new("TextLabel")
@@ -12871,6 +12873,268 @@ for i, entry in ipairs(SCRIPTS) do
     end)
 end
 
+-- rename panel: pick a script, retitle it, then run it
+-- (renames live in memory only, so every execute starts from the original names)
+local renamePanel
+do
+    local selected = nil
+    local expanded = false
+
+    local panel = Instance.new("Frame")
+    panel.Name = "RenamePanel"
+    panel.Size = UDim2.new(1, -28, 0, 128)
+    panel.Position = UDim2.new(0, 14, 1, -194)
+    panel.BackgroundTransparency = 1
+    panel.Parent = main
+
+    local heading = Instance.new("TextLabel")
+    heading.Size = UDim2.new(1, 0, 0, 14)
+    heading.BackgroundTransparency = 1
+    heading.Text = "RENAME & RUN"
+    heading.TextColor3 = COLORS.subtext
+    heading.Font = Enum.Font.GothamBold
+    heading.TextSize = 11
+    heading.TextXAlignment = Enum.TextXAlignment.Left
+    heading.Parent = panel
+
+    local picker = Instance.new("TextButton")
+    picker.Size = UDim2.new(1, 0, 0, 34)
+    picker.Position = UDim2.fromOffset(0, 18)
+    picker.BackgroundColor3 = COLORS.card
+    picker.AutoButtonColor = false
+    picker.Text = ""
+    picker.BorderSizePixel = 0
+    picker.Parent = panel
+    corner(picker, 9)
+
+    local pickerStroke = Instance.new("UIStroke", picker)
+    pickerStroke.Color = COLORS.cardHover
+    pickerStroke.Thickness = 1
+
+    local pickerText = Instance.new("TextLabel")
+    pickerText.Size = UDim2.new(1, -46, 1, 0)
+    pickerText.Position = UDim2.fromOffset(13, 0)
+    pickerText.BackgroundTransparency = 1
+    pickerText.Text = "Select a script..."
+    pickerText.TextColor3 = COLORS.subtext
+    pickerText.Font = Enum.Font.GothamMedium
+    pickerText.TextSize = 13
+    pickerText.TextXAlignment = Enum.TextXAlignment.Left
+    pickerText.TextTruncate = Enum.TextTruncate.AtEnd
+    pickerText.Parent = picker
+
+    local chevron = Instance.new("TextLabel")
+    chevron.Size = UDim2.fromOffset(30, 34)
+    chevron.Position = UDim2.new(1, -34, 0, 0)
+    chevron.BackgroundTransparency = 1
+    chevron.Text = "▾"
+    chevron.TextColor3 = COLORS.subtext
+    chevron.Font = Enum.Font.GothamBold
+    chevron.TextSize = 14
+    chevron.Parent = picker
+
+    local optionHeight = 30
+    local options = Instance.new("Frame")
+    options.Size = UDim2.new(1, 0, 0, 0)
+    options.Position = UDim2.fromOffset(0, 54)
+    options.BackgroundColor3 = COLORS.card
+    options.BorderSizePixel = 0
+    options.ClipsDescendants = true
+    options.Visible = false
+    options.ZIndex = 20
+    options.Parent = panel
+    corner(options, 9)
+
+    local optionsStroke = Instance.new("UIStroke", options)
+    optionsStroke.Color = COLORS.accentA
+    optionsStroke.Thickness = 1
+    optionsStroke.Transparency = 0.4
+
+    local optionsLayout = Instance.new("UIListLayout", options)
+    optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local nameBox
+
+    local function collapse()
+        expanded = false
+        chevron.Text = "▾"
+        TweenService:Create(options, TweenInfo.new(0.18), { Size = UDim2.new(1, 0, 0, 0) }):Play()
+        task.delay(0.18, function()
+            if not expanded then
+                options.Visible = false
+            end
+        end)
+    end
+
+    local function selectEntry(entry)
+        selected = entry
+        pickerText.Text = entry.name
+        pickerText.TextColor3 = COLORS.text
+        nameBox.Text = entry.name
+        collapse()
+    end
+
+    for i, entry in ipairs(SCRIPTS) do
+        local option = Instance.new("TextButton")
+        option.Size = UDim2.new(1, 0, 0, optionHeight)
+        option.BackgroundTransparency = 1
+        option.AutoButtonColor = false
+        option.Text = "    " .. entry.name
+        option.TextColor3 = COLORS.subtext
+        option.Font = Enum.Font.GothamMedium
+        option.TextSize = 12
+        option.TextXAlignment = Enum.TextXAlignment.Left
+        option.LayoutOrder = i
+        option.ZIndex = 21
+        option.Parent = options
+
+        option.MouseEnter:Connect(function()
+            option.BackgroundTransparency = 0.85
+            option.BackgroundColor3 = COLORS.accentA
+            option.TextColor3 = COLORS.text
+        end)
+        option.MouseLeave:Connect(function()
+            option.BackgroundTransparency = 1
+            option.TextColor3 = COLORS.subtext
+        end)
+        option.MouseButton1Click:Connect(function()
+            selectEntry(entry)
+        end)
+
+        -- keep the dropdown label in sync with renames
+        nameLabels[entry]:GetPropertyChangedSignal("Text"):Connect(function()
+            option.Text = "    " .. nameLabels[entry].Text
+        end)
+    end
+
+    picker.MouseButton1Click:Connect(function()
+        expanded = not expanded
+        if expanded then
+            chevron.Text = "▴"
+            options.Visible = true
+            TweenService
+                :Create(options, TweenInfo.new(0.18), {
+                    Size = UDim2.new(1, 0, 0, optionHeight * #SCRIPTS),
+                })
+                :Play()
+        else
+            collapse()
+        end
+    end)
+
+    local boxHolder = Instance.new("Frame")
+    boxHolder.Size = UDim2.new(1, -104, 0, 34)
+    boxHolder.Position = UDim2.fromOffset(0, 58)
+    boxHolder.BackgroundColor3 = COLORS.card
+    boxHolder.BorderSizePixel = 0
+    boxHolder.Parent = panel
+    corner(boxHolder, 9)
+
+    local boxStroke = Instance.new("UIStroke", boxHolder)
+    boxStroke.Color = COLORS.cardHover
+    boxStroke.Thickness = 1
+
+    nameBox = Instance.new("TextBox")
+    nameBox.Size = UDim2.new(1, -26, 1, 0)
+    nameBox.Position = UDim2.fromOffset(13, 0)
+    nameBox.BackgroundTransparency = 1
+    nameBox.ClearTextOnFocus = false
+    nameBox.Text = ""
+    nameBox.PlaceholderText = "New name..."
+    nameBox.PlaceholderColor3 = COLORS.subtext
+    nameBox.TextColor3 = COLORS.text
+    nameBox.Font = Enum.Font.GothamMedium
+    nameBox.TextSize = 13
+    nameBox.TextXAlignment = Enum.TextXAlignment.Left
+    nameBox.Parent = boxHolder
+
+    nameBox.Focused:Connect(function()
+        TweenService:Create(boxStroke, TweenInfo.new(0.15), { Color = COLORS.accentA }):Play()
+    end)
+    nameBox.FocusLost:Connect(function()
+        TweenService:Create(boxStroke, TweenInfo.new(0.15), { Color = COLORS.cardHover }):Play()
+    end)
+
+    local function makePanelButton(text, position, size)
+        local button = Instance.new("TextButton")
+        button.Size = size
+        button.Position = position
+        button.BackgroundColor3 = Color3.new(1, 1, 1)
+        button.AutoButtonColor = false
+        button.Text = text
+        button.TextColor3 = Color3.new(1, 1, 1)
+        button.Font = Enum.Font.GothamBold
+        button.TextSize = 12
+        button.BorderSizePixel = 0
+        button.Parent = panel
+        corner(button, 9)
+
+        local gradient = Instance.new("UIGradient", button)
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, COLORS.accentA),
+            ColorSequenceKeypoint.new(1, COLORS.accentB),
+        })
+
+        button.MouseEnter:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.15), { TextTransparency = 0.2 }):Play()
+        end)
+        button.MouseLeave:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.15), { TextTransparency = 0 }):Play()
+        end)
+        return button
+    end
+
+    local renameButton = makePanelButton("RENAME", UDim2.new(1, -96, 0, 58), UDim2.fromOffset(96, 34))
+    local loadButton = makePanelButton("LOAD SELECTED", UDim2.fromOffset(0, 98), UDim2.new(1, 0, 0, 30))
+
+    local function applyRename()
+        if not selected then
+            setStatus("Select a script first", COLORS.bad)
+            return
+        end
+        local newName = (nameBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if newName == "" then
+            setStatus("Enter a new name first", COLORS.bad)
+            return
+        end
+        local previous = selected.name
+        selected.name = newName
+        nameLabels[selected].Text = newName
+        pickerText.Text = newName
+        setStatus('Renamed "' .. previous .. '" to "' .. newName .. '"', COLORS.good)
+    end
+
+    renameButton.MouseButton1Click:Connect(applyRename)
+    nameBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            applyRename()
+        end
+    end)
+
+    loadButton.MouseButton1Click:Connect(function()
+        if not selected then
+            setStatus("Select a script first", COLORS.bad)
+            return
+        end
+        local entry = selected
+        setStatus("Loading " .. entry.name .. "...")
+        loadButton.Text = "LOADING..."
+        task.spawn(function()
+            local ok, err = runScript(entry)
+            loadButton.Text = "LOAD SELECTED"
+            if ok then
+                setStatus(entry.name .. " loaded", COLORS.good)
+                notify(entry.name .. " loaded")
+            else
+                setStatus(entry.name .. ": " .. tostring(err), COLORS.bad)
+                notify("Failed: " .. tostring(err))
+            end
+        end)
+    end)
+
+    renamePanel = panel
+end
+
 -- dragging
 local function makeDraggable(window, handle)
     local dragging, dragStart, startPos = false, nil, nil
@@ -12923,10 +13187,11 @@ minimizeButton.MouseButton1Click:Connect(function()
     list.Visible = not minimized
     footer.Visible = not minimized
     status.Visible = not minimized
+    renamePanel.Visible = not minimized
     minimizeButton.Text = minimized and "+" or "—"
     TweenService
         :Create(main, TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-            Size = minimized and UDim2.fromOffset(400, 130) or UDim2.fromOffset(400, 470),
+            Size = minimized and UDim2.fromOffset(400, 130) or UDim2.fromOffset(400, 556),
         })
         :Play()
 end)
