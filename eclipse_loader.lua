@@ -4,27 +4,32 @@
 --   url    = "https://raw.githubusercontent.com/.../script.lua"  (fetched with game:HttpGet)
 --   source = "raw lua code here"                                 (inline code)
 
+-- `brand` is the name the script shows in its own UI; renaming rewrites it in the source
 local SCRIPTS = {
     {
         name = "Midnight Hub",
+        brand = "Midnight Hub",
         desc = "",
         url = "", -- TODO: paste raw script URL
         source = "", -- or paste raw lua source
     },
     {
         name = "Overtime",
+        brand = "Overtime",
         desc = "",
         url = "",
         source = "",
     },
     {
         name = "Inferno Hub",
+        brand = "Inferno Hub",
         desc = "",
         url = "",
         source = "",
     },
     {
         name = "Kalihub Updated",
+        brand = "Eclipse",
         desc = "",
         url = "",
         source = "",
@@ -12417,6 +12422,32 @@ local function comma(n)
     return (out:gsub("^,", ""))
 end
 
+local function escapePattern(text)
+    return (text:gsub("(%W)", "%%%1"))
+end
+
+-- Swaps the brand name inside a script's own source so its UI/notifications show
+-- the new name. Identifiers (Brand_Sky), paths (.../Brand) and config file names
+-- keep the original so nothing breaks.
+local function rebrand(code, brand, newName)
+    local esc = escapePattern(brand)
+    local kept = {}
+    local function keep(match)
+        kept[#kept + 1] = match
+        return "\1" .. #kept .. "\1"
+    end
+
+    code = code:gsub(esc .. "_", keep)
+    code = code:gsub("/" .. esc, keep)
+    code = code:gsub('FileName%s*=%s*"' .. esc .. '"', keep)
+
+    code = code:gsub(esc, (newName:gsub("%%", "%%%%")))
+
+    return (code:gsub("\1(%d+)\1", function(index)
+        return kept[tonumber(index)]
+    end))
+end
+
 local function runScript(entry)
     local code = entry.source
     if not code or code == "" then
@@ -12427,6 +12458,10 @@ local function runScript(entry)
         if not code then
             return false, "download failed"
         end
+    end
+
+    if entry.rename and entry.rename ~= "" and entry.brand then
+        code = rebrand(code, entry.brand, entry.rename)
     end
 
     local fn, err = loadstring(code)
@@ -12890,7 +12925,7 @@ do
     local heading = Instance.new("TextLabel")
     heading.Size = UDim2.new(1, 0, 0, 14)
     heading.BackgroundTransparency = 1
-    heading.Text = "RENAME & RUN"
+    heading.Text = "RENAME IN-SCRIPT & RUN"
     heading.TextColor3 = COLORS.subtext
     heading.Font = Enum.Font.GothamBold
     heading.TextSize = 11
@@ -12970,7 +13005,7 @@ do
         selected = entry
         pickerText.Text = entry.name
         pickerText.TextColor3 = COLORS.text
-        nameBox.Text = entry.name
+        nameBox.Text = entry.rename or entry.brand or entry.name
         collapse()
     end
 
@@ -13001,10 +13036,6 @@ do
             selectEntry(entry)
         end)
 
-        -- keep the dropdown label in sync with renames
-        nameLabels[entry]:GetPropertyChangedSignal("Text"):Connect(function()
-            option.Text = "    " .. nameLabels[entry].Text
-        end)
     end
 
     picker.MouseButton1Click:Connect(function()
@@ -13040,7 +13071,7 @@ do
     nameBox.BackgroundTransparency = 1
     nameBox.ClearTextOnFocus = false
     nameBox.Text = ""
-    nameBox.PlaceholderText = "New name..."
+    nameBox.PlaceholderText = "New in-script name..."
     nameBox.PlaceholderColor3 = COLORS.subtext
     nameBox.TextColor3 = COLORS.text
     nameBox.Font = Enum.Font.GothamMedium
@@ -13097,11 +13128,9 @@ do
             setStatus("Enter a new name first", COLORS.bad)
             return
         end
-        local previous = selected.name
-        selected.name = newName
-        nameLabels[selected].Text = newName
-        pickerText.Text = newName
-        setStatus('Renamed "' .. previous .. '" to "' .. newName .. '"', COLORS.good)
+        selected.rename = newName
+        nameLabels[selected].Text = selected.name .. "  ›  " .. newName
+        setStatus(selected.name .. ' will load as "' .. newName .. '"', COLORS.good)
     end
 
     renameButton.MouseButton1Click:Connect(applyRename)
