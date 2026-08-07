@@ -16,6 +16,7 @@ local lp         = players.LocalPlayer
 
 local ESP_ON       = false
 local HITBOX_ON    = false
+local HITBOX_INVIS = false
 local KILL_ALL_ON  = false
 local HITBOX_SIZE  = 5
 
@@ -29,17 +30,20 @@ local INVIS_CONFIG = {
 local playerState = { isInvisible = false }
 
 local THEME = {
-	BG        = Color3.fromRGB(18, 18, 24),
-	PANEL     = Color3.fromRGB(26, 26, 34),
-	ELEMENT   = Color3.fromRGB(34, 34, 44),
-	STROKE    = Color3.fromRGB(52, 52, 66),
-	TEXT      = Color3.fromRGB(235, 235, 245),
-	SUBTEXT   = Color3.fromRGB(150, 150, 170),
-	ACCENT    = Color3.fromRGB(0, 170, 255),
-	SUCCESS   = Color3.fromRGB(46, 204, 113),
-	DANGER    = Color3.fromRGB(231, 76, 60),
-	FONT      = Enum.Font.GothamMedium,
-	FONT_BOLD = Enum.Font.GothamBold,
+	BG         = Color3.fromRGB(15, 15, 20),
+	BG_2       = Color3.fromRGB(22, 22, 30),
+	PANEL      = Color3.fromRGB(21, 21, 28),
+	ELEMENT    = Color3.fromRGB(30, 30, 40),
+	ELEMENT_HI = Color3.fromRGB(40, 40, 54),
+	STROKE     = Color3.fromRGB(48, 48, 62),
+	TEXT       = Color3.fromRGB(238, 238, 248),
+	SUBTEXT    = Color3.fromRGB(140, 140, 162),
+	ACCENT     = Color3.fromRGB(88, 130, 255),
+	ACCENT_2   = Color3.fromRGB(168, 96, 255),
+	SUCCESS    = Color3.fromRGB(46, 204, 113),
+	DANGER     = Color3.fromRGB(235, 78, 84),
+	FONT       = Enum.Font.GothamMedium,
+	FONT_BOLD  = Enum.Font.GothamBold,
 }
 
 --=========================================================
@@ -95,6 +99,29 @@ local function stroke(parent, color, thickness)
 	return s
 end
 
+local function gradient(parent, c1, c2, rotation)
+	local g = Instance.new("UIGradient", parent)
+	g.Color = ColorSequence.new(c1, c2)
+	g.Rotation = rotation or 90
+	return g
+end
+
+local function shadow(parent, size)
+	local s = Instance.new("ImageLabel", parent)
+	s.Name = "Shadow"
+	s.AnchorPoint = Vector2.new(0.5, 0.5)
+	s.Position = UDim2.new(0.5, 0, 0.5, 0)
+	s.Size = UDim2.new(1, size or 40, 1, size or 40)
+	s.BackgroundTransparency = 1
+	s.Image = "rbxassetid://6014261993"
+	s.ImageColor3 = Color3.new(0, 0, 0)
+	s.ImageTransparency = 0.45
+	s.ScaleType = Enum.ScaleType.Slice
+	s.SliceCenter = Rect.new(49, 49, 450, 450)
+	s.ZIndex = 0
+	return s
+end
+
 local function tween(obj, props, time)
 	tweenServ:Create(obj, TweenInfo.new(time or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props):Play()
 end
@@ -123,11 +150,17 @@ local function notify(text, color)
 	f.Size = UDim2.new(1, 0, 0, 36)
 	f.BackgroundColor3 = THEME.PANEL
 	f.BackgroundTransparency = 1
-	corner(f, 8)
+	corner(f, 10)
 	stroke(f, color or THEME.ACCENT)
+	local accentBar = Instance.new("Frame", f)
+	accentBar.Size = UDim2.new(0, 3, 1, -12)
+	accentBar.Position = UDim2.new(0, 5, 0, 6)
+	accentBar.BackgroundColor3 = color or THEME.ACCENT
+	accentBar.BorderSizePixel = 0
+	corner(accentBar, 2)
 	local l = Instance.new("TextLabel", f)
-	l.Size = UDim2.new(1, -16, 1, 0)
-	l.Position = UDim2.new(0, 12, 0, 0)
+	l.Size = UDim2.new(1, -22, 1, 0)
+	l.Position = UDim2.new(0, 16, 0, 0)
 	l.BackgroundTransparency = 1
 	l.Font = THEME.FONT
 	l.TextSize = 13
@@ -155,23 +188,37 @@ Main.BackgroundColor3 = THEME.BG
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
-corner(Main, 12)
+Main.ClipsDescendants = true
+corner(Main, 14)
 stroke(Main, THEME.STROKE)
+gradient(Main, THEME.BG_2, THEME.BG, 90)
 
 local TopBar = Instance.new("Frame", Main)
-TopBar.Size = UDim2.new(1, 0, 0, 44)
+TopBar.Size = UDim2.new(1, 0, 0, 46)
 TopBar.BackgroundColor3 = THEME.PANEL
+TopBar.BackgroundTransparency = 0.15
 TopBar.BorderSizePixel = 0
-corner(TopBar, 12)
-local topPatch = Instance.new("Frame", TopBar)
-topPatch.Size = UDim2.new(1, 0, 0, 12)
-topPatch.Position = UDim2.new(0, 0, 1, -12)
-topPatch.BackgroundColor3 = THEME.PANEL
-topPatch.BorderSizePixel = 0
+
+local TopLine = Instance.new("Frame", TopBar)
+TopLine.AnchorPoint = Vector2.new(0, 1)
+TopLine.Position = UDim2.new(0, 0, 1, 0)
+TopLine.Size = UDim2.new(1, 0, 0, 1)
+TopLine.BorderSizePixel = 0
+TopLine.BackgroundColor3 = THEME.ACCENT
+gradient(TopLine, THEME.ACCENT, THEME.ACCENT_2, 0)
+
+local Logo = Instance.new("Frame", TopBar)
+Logo.AnchorPoint = Vector2.new(0, 0.5)
+Logo.Position = UDim2.new(0, 14, 0.5, 0)
+Logo.Size = UDim2.new(0, 10, 0, 10)
+Logo.BackgroundColor3 = THEME.ACCENT
+Logo.BorderSizePixel = 0
+corner(Logo, 5)
+gradient(Logo, THEME.ACCENT, THEME.ACCENT_2, 45)
 
 local Title = Instance.new("TextLabel", TopBar)
-Title.Size = UDim2.new(1, -110, 1, 0)
-Title.Position = UDim2.new(0, 16, 0, 0)
+Title.Size = UDim2.new(1, -130, 1, 0)
+Title.Position = UDim2.new(0, 32, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Font = THEME.FONT_BOLD
 Title.TextSize = 15
@@ -181,7 +228,7 @@ Title.Text = "Murder vs Sheriff 2026"
 
 local Subtitle = Instance.new("TextLabel", TopBar)
 Subtitle.Size = UDim2.new(0, 200, 0, 14)
-Subtitle.Position = UDim2.new(0, 16, 1, -16)
+Subtitle.Position = UDim2.new(0, 32, 1, -16)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Font = THEME.FONT
 Subtitle.TextSize = 11
@@ -196,14 +243,15 @@ local function makeTopButton(text, xOffset, color)
 	b.Position = UDim2.new(1, xOffset, 0.5, 0)
 	b.Size = UDim2.new(0, 28, 0, 28)
 	b.BackgroundColor3 = THEME.ELEMENT
+	b.BackgroundTransparency = 0.2
 	b.Text = text
 	b.Font = THEME.FONT_BOLD
 	b.TextSize = 14
-	b.TextColor3 = color or THEME.TEXT
+	b.TextColor3 = color or THEME.SUBTEXT
 	b.AutoButtonColor = false
-	corner(b, 6)
-	b.MouseEnter:Connect(function() tween(b, {BackgroundColor3 = THEME.STROKE}) end)
-	b.MouseLeave:Connect(function() tween(b, {BackgroundColor3 = THEME.ELEMENT}) end)
+	corner(b, 8)
+	b.MouseEnter:Connect(function() tween(b, {BackgroundColor3 = THEME.ELEMENT_HI, TextColor3 = color or THEME.TEXT}) end)
+	b.MouseLeave:Connect(function() tween(b, {BackgroundColor3 = THEME.ELEMENT, TextColor3 = color or THEME.SUBTEXT}) end)
 	return b
 end
 
@@ -212,9 +260,10 @@ local MinBtn   = makeTopButton("-", -46)
 
 --------------------------------------------------- tabs
 local TabBar = Instance.new("Frame", Main)
-TabBar.Position = UDim2.new(0, 0, 0, 44)
-TabBar.Size = UDim2.new(0, 140, 1, -44)
+TabBar.Position = UDim2.new(0, 0, 0, 46)
+TabBar.Size = UDim2.new(0, 144, 1, -46)
 TabBar.BackgroundColor3 = THEME.PANEL
+TabBar.BackgroundTransparency = 0.25
 TabBar.BorderSizePixel = 0
 
 local tabList = Instance.new("UIListLayout", TabBar)
@@ -224,16 +273,23 @@ tabPad.PaddingTop = UDim.new(0, 10)
 tabPad.PaddingLeft = UDim.new(0, 10)
 tabPad.PaddingRight = UDim.new(0, 10)
 
+local TabDivider = Instance.new("Frame", Main)
+TabDivider.Position = UDim2.new(0, 144, 0, 46)
+TabDivider.Size = UDim2.new(0, 1, 1, -46)
+TabDivider.BackgroundColor3 = THEME.STROKE
+TabDivider.BorderSizePixel = 0
+
 local Pages = Instance.new("Frame", Main)
-Pages.Position = UDim2.new(0, 140, 0, 44)
-Pages.Size = UDim2.new(1, -140, 1, -44)
+Pages.Position = UDim2.new(0, 145, 0, 46)
+Pages.Size = UDim2.new(1, -145, 1, -46)
 Pages.BackgroundTransparency = 1
+Pages.ClipsDescendants = true
 
 local tabs = {}
 local function createTab(name)
 	local btn = Instance.new("TextButton", TabBar)
-	btn.Size = UDim2.new(1, 0, 0, 32)
-	btn.BackgroundColor3 = THEME.ELEMENT
+	btn.Size = UDim2.new(1, 0, 0, 34)
+	btn.BackgroundColor3 = THEME.ELEMENT_HI
 	btn.BackgroundTransparency = 1
 	btn.Text = name
 	btn.Font = THEME.FONT
@@ -241,9 +297,18 @@ local function createTab(name)
 	btn.TextColor3 = THEME.SUBTEXT
 	btn.TextXAlignment = Enum.TextXAlignment.Left
 	btn.AutoButtonColor = false
-	corner(btn, 6)
+	corner(btn, 8)
 	local bpad = Instance.new("UIPadding", btn)
-	bpad.PaddingLeft = UDim.new(0, 10)
+	bpad.PaddingLeft = UDim.new(0, 14)
+
+	local indicator = Instance.new("Frame", btn)
+	indicator.AnchorPoint = Vector2.new(0, 0.5)
+	indicator.Position = UDim2.new(0, -10, 0.5, 0)
+	indicator.Size = UDim2.new(0, 3, 0, 0)
+	indicator.BackgroundColor3 = THEME.ACCENT
+	indicator.BorderSizePixel = 0
+	corner(indicator, 2)
+	gradient(indicator, THEME.ACCENT, THEME.ACCENT_2, 90)
 
 	local page = Instance.new("ScrollingFrame", Pages)
 	page.Size = UDim2.new(1, 0, 1, 0)
@@ -262,17 +327,29 @@ local function createTab(name)
 	ppad.PaddingRight = UDim.new(0, 14)
 	ppad.PaddingBottom = UDim.new(0, 12)
 
-	local tab = {Button = btn, Page = page}
+	local tab = {Button = btn, Page = page, Indicator = indicator, Selected = false}
 	table.insert(tabs, tab)
 
 	local function select()
 		for _, t in ipairs(tabs) do
 			t.Page.Visible = false
+			t.Selected = false
 			tween(t.Button, {BackgroundTransparency = 1, TextColor3 = THEME.SUBTEXT})
+			tween(t.Indicator, {Size = UDim2.new(0, 3, 0, 0)})
 		end
+		tab.Selected = true
 		page.Visible = true
-		tween(btn, {BackgroundTransparency = 0, TextColor3 = THEME.TEXT})
+		page.Position = UDim2.new(0, 8, 0, 0)
+		tween(page, {Position = UDim2.new(0, 0, 0, 0)}, 0.22)
+		tween(btn, {BackgroundTransparency = 0.35, TextColor3 = THEME.TEXT})
+		tween(indicator, {Size = UDim2.new(0, 3, 0, 18)})
 	end
+	btn.MouseEnter:Connect(function()
+		if not tab.Selected then tween(btn, {BackgroundTransparency = 0.7, TextColor3 = THEME.TEXT}) end
+	end)
+	btn.MouseLeave:Connect(function()
+		if not tab.Selected then tween(btn, {BackgroundTransparency = 1, TextColor3 = THEME.SUBTEXT}) end
+	end)
 	btn.MouseButton1Click:Connect(select)
 	if #tabs == 1 then select() end
 	return tab
@@ -284,8 +361,9 @@ local function rowBase(page, height)
 	f.Size = UDim2.new(1, 0, 0, height)
 	f.BackgroundColor3 = THEME.ELEMENT
 	f.BorderSizePixel = 0
-	corner(f, 8)
+	corner(f, 10)
 	stroke(f, THEME.STROKE)
+	gradient(f, THEME.ELEMENT_HI, THEME.ELEMENT, 90)
 	return f
 end
 
@@ -309,11 +387,19 @@ local function createToggle(page, name, default, callback)
 	local track = Instance.new("TextButton", f)
 	track.AnchorPoint = Vector2.new(1, 0.5)
 	track.Position = UDim2.new(1, -12, 0.5, 0)
-	track.Size = UDim2.new(0, 42, 0, 22)
+	track.Size = UDim2.new(0, 44, 0, 22)
 	track.BackgroundColor3 = THEME.STROKE
 	track.Text = ""
 	track.AutoButtonColor = false
 	corner(track, 11)
+
+	local glow = Instance.new("Frame", track)
+	glow.Size = UDim2.new(1, 0, 1, 0)
+	glow.BackgroundColor3 = THEME.ACCENT
+	glow.BackgroundTransparency = 1
+	glow.BorderSizePixel = 0
+	corner(glow, 11)
+	gradient(glow, THEME.ACCENT, THEME.ACCENT_2, 0)
 
 	local knob = Instance.new("Frame", track)
 	knob.AnchorPoint = Vector2.new(0, 0.5)
@@ -321,14 +407,16 @@ local function createToggle(page, name, default, callback)
 	knob.Size = UDim2.new(0, 16, 0, 16)
 	knob.BackgroundColor3 = THEME.TEXT
 	knob.BorderSizePixel = 0
+	knob.ZIndex = 2
 	corner(knob, 8)
 
 	local state = default and true or false
 	local api = {}
 	function api:Set(v)
 		state = v and true or false
-		tween(track, {BackgroundColor3 = state and THEME.ACCENT or THEME.STROKE})
+		tween(glow, {BackgroundTransparency = state and 0 or 1})
 		tween(knob, {Position = state and UDim2.new(1, -19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)})
+		tween(l, {TextColor3 = state and THEME.TEXT or THEME.SUBTEXT})
 		task.spawn(callback, state)
 	end
 	track.MouseButton1Click:Connect(function() api:Set(not state) end)
@@ -361,6 +449,16 @@ local function createSlider(page, name, min, max, default, callback)
 	fill.BackgroundColor3 = THEME.ACCENT
 	fill.BorderSizePixel = 0
 	corner(fill, 4)
+	gradient(fill, THEME.ACCENT, THEME.ACCENT_2, 0)
+
+	local knob = Instance.new("Frame", bar)
+	knob.AnchorPoint = Vector2.new(0.5, 0.5)
+	knob.Position = UDim2.new((default - min) / (max - min), 0, 0.5, 0)
+	knob.Size = UDim2.new(0, 14, 0, 14)
+	knob.BackgroundColor3 = THEME.TEXT
+	knob.BorderSizePixel = 0
+	knob.ZIndex = 2
+	corner(knob, 7)
 
 	local value = default
 	local api = {}
@@ -368,7 +466,9 @@ local function createSlider(page, name, min, max, default, callback)
 		v = math.clamp(math.floor(v + 0.5), min, max)
 		value = v
 		valLabel.Text = tostring(v)
-		fill.Size = UDim2.new((v - min) / (max - min), 0, 1, 0)
+		local a = (v - min) / (max - min)
+		fill.Size = UDim2.new(a, 0, 1, 0)
+		knob.Position = UDim2.new(a, 0, 0.5, 0)
 		task.spawn(callback, v)
 	end
 
@@ -398,26 +498,42 @@ end
 
 local function createButton(page, name, callback)
 	local b = Instance.new("TextButton", page)
-	b.Size = UDim2.new(1, 0, 0, 34)
+	b.Size = UDim2.new(1, 0, 0, 36)
 	b.BackgroundColor3 = THEME.ELEMENT
 	b.Text = name
 	b.Font = THEME.FONT
 	b.TextSize = 13
 	b.TextColor3 = THEME.TEXT
 	b.AutoButtonColor = false
-	corner(b, 8)
-	stroke(b, THEME.STROKE)
-	b.MouseEnter:Connect(function() tween(b, {BackgroundColor3 = THEME.ACCENT}) end)
-	b.MouseLeave:Connect(function() tween(b, {BackgroundColor3 = THEME.ELEMENT}) end)
+	corner(b, 10)
+	local bs = stroke(b, THEME.STROKE)
+	gradient(b, THEME.ELEMENT_HI, THEME.ELEMENT, 90)
+	b.MouseEnter:Connect(function()
+		tween(b, {BackgroundColor3 = THEME.ELEMENT_HI})
+		tween(bs, {Color = THEME.ACCENT})
+	end)
+	b.MouseLeave:Connect(function()
+		tween(b, {BackgroundColor3 = THEME.ELEMENT})
+		tween(bs, {Color = THEME.STROKE})
+	end)
 	b.MouseButton1Click:Connect(function() task.spawn(callback) end)
 	return b
 end
 
 local function createSection(page, text)
-	local l = label(page, text:upper(), 11, THEME.SUBTEXT)
-	l.Size = UDim2.new(1, 0, 0, 16)
+	local holder = Instance.new("Frame", page)
+	holder.Size = UDim2.new(1, 0, 0, 18)
+	holder.BackgroundTransparency = 1
+	local l = label(holder, text:upper(), 11, THEME.SUBTEXT)
+	l.Size = UDim2.new(1, 0, 1, 0)
 	l.Font = THEME.FONT_BOLD
-	return l
+	local line = Instance.new("Frame", holder)
+	line.AnchorPoint = Vector2.new(0, 1)
+	line.Position = UDim2.new(0, 0, 1, 0)
+	line.Size = UDim2.new(1, 0, 0, 1)
+	line.BackgroundColor3 = THEME.STROKE
+	line.BorderSizePixel = 0
+	return holder
 end
 
 --=========================================================
@@ -435,14 +551,16 @@ local InvisPanel = Instance.new("Frame", ScreenGui)
 InvisPanel.Name = "InvisPanel"
 InvisPanel.AnchorPoint = Vector2.new(1, 0.5)
 InvisPanel.Position = UDim2.new(1, -20, 0.5, 0)
-InvisPanel.Size = UDim2.new(0, 190, 0, 120)
+InvisPanel.Size = UDim2.new(0, 200, 0, 128)
 InvisPanel.BackgroundColor3 = THEME.BG
 InvisPanel.BorderSizePixel = 0
 InvisPanel.Active = true
 InvisPanel.Draggable = true
 InvisPanel.Visible = false
-corner(InvisPanel, 10)
+corner(InvisPanel, 12)
 stroke(InvisPanel, THEME.STROKE)
+gradient(InvisPanel, THEME.BG_2, THEME.BG, 90)
+shadow(InvisPanel, 40)
 
 local ipTitle = label(InvisPanel, "Invisibility", 13, THEME.TEXT)
 ipTitle.Font = THEME.FONT_BOLD
@@ -454,15 +572,16 @@ ipStatus.Position = UDim2.new(0, 12, 0, 30)
 ipStatus.Size = UDim2.new(1, -24, 0, 16)
 
 local ipBtn = Instance.new("TextButton", InvisPanel)
-ipBtn.Position = UDim2.new(0, 12, 0, 54)
-ipBtn.Size = UDim2.new(1, -24, 0, 34)
+ipBtn.Position = UDim2.new(0, 12, 0, 56)
+ipBtn.Size = UDim2.new(1, -24, 0, 36)
 ipBtn.BackgroundColor3 = THEME.ACCENT
 ipBtn.Text = "GO INVISIBLE"
 ipBtn.Font = THEME.FONT_BOLD
 ipBtn.TextSize = 13
 ipBtn.TextColor3 = Color3.new(1, 1, 1)
 ipBtn.AutoButtonColor = false
-corner(ipBtn, 8)
+corner(ipBtn, 10)
+local ipBtnGradient = gradient(ipBtn, THEME.ACCENT, THEME.ACCENT_2, 0)
 
 local ipHint = label(InvisPanel, "Drag to move • Ctrl+I toggles", 10, THEME.SUBTEXT)
 ipHint.Position = UDim2.new(0, 12, 1, -24)
@@ -502,7 +621,9 @@ local function applyInvisibility(enable)
 	ipStatus.Text = enable and "Status: Invisible" or "Status: Visible"
 	ipStatus.TextColor3 = enable and THEME.SUCCESS or THEME.SUBTEXT
 	ipBtn.Text = enable and "GO VISIBLE" or "GO INVISIBLE"
-	tween(ipBtn, {BackgroundColor3 = enable and THEME.SUCCESS or THEME.ACCENT})
+	ipBtnGradient.Color = enable
+		and ColorSequence.new(THEME.SUCCESS, Color3.fromRGB(26, 188, 156))
+		or ColorSequence.new(THEME.ACCENT, THEME.ACCENT_2)
 	notify(enable and "Invisibility enabled" or "Invisibility disabled", enable and THEME.SUCCESS or THEME.ACCENT)
 end
 
@@ -531,6 +652,7 @@ local TabVisuals = createTab("Visuals")
 createSection(TabVisuals.Page, "ESP & Hitbox")
 createToggle(TabVisuals.Page, "ESP Players", false, function(v) ESP_ON = v end)
 createToggle(TabVisuals.Page, "Enable Hitbox", false, function(v) HITBOX_ON = v end)
+createToggle(TabVisuals.Page, "Hitbox See-Thru (invisible)", false, function(v) HITBOX_INVIS = v end)
 createSlider(TabVisuals.Page, "Hitbox Size", 1, 20, 5, function(v) HITBOX_SIZE = v end)
 
 local TabMove = createTab("Movement")
@@ -584,7 +706,7 @@ createButton(TabSettings.Page, "Reset UI Position", function()
 	notify("UI position reset")
 end)
 createButton(TabSettings.Page, "Unload Script", function()
-	ESP_ON, HITBOX_ON, KILL_ALL_ON, NoClipEnabled, InfiniteJumpEnabled = false, false, false, false, false
+	ESP_ON, HITBOX_ON, HITBOX_INVIS, KILL_ALL_ON, NoClipEnabled, InfiniteJumpEnabled = false, false, false, false, false, false
 	WalkSpeedValue = 16
 	if playerState.isInvisible then applyInvisibility(false) end
 	ScreenGui:Destroy()
@@ -600,9 +722,10 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	TabBar.Visible = not minimized
+	TabDivider.Visible = not minimized
 	Pages.Visible = not minimized
 	Subtitle.Visible = minimized
-	tween(Main, {Size = minimized and UDim2.new(0, 560, 0, 44) or UDim2.new(0, 560, 0, 380)}, 0.2)
+	tween(Main, {Size = minimized and UDim2.new(0, 560, 0, 46) or UDim2.new(0, 560, 0, 380)}, 0.22)
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
@@ -675,7 +798,7 @@ runService.RenderStepped:Connect(function()
 			local hrp = p.Character.HumanoidRootPart
 			if HITBOX_ON and (p.Team ~= lp.Team or p.Team == nil) then
 				hrp.Size = Vector3.new(HITBOX_SIZE, HITBOX_SIZE, HITBOX_SIZE)
-				hrp.Transparency = ESP_ON and 0.7 or 1
+				hrp.Transparency = (not HITBOX_INVIS and ESP_ON) and 0.7 or 1
 				hrp.Color = Color3.new(1, 0, 1)
 				hrp.CanCollide = false
 			else
