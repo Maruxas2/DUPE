@@ -14,6 +14,7 @@ local lp         = players.LocalPlayer
 local esp          = false
 local hitboxOn     = false
 local hitboxInvis  = false
+local hitboxSafe   = true
 local hitboxSize   = 5
 local walkSpeed    = 16
 local noclip       = false
@@ -40,24 +41,109 @@ local FONT = Enum.Font.Gotham
 local FONT_B = Enum.Font.GothamBold
 
 --=========================================================
--- anticheat purge + remote cache
+-- anticheat bypass
 --=========================================================
-pcall(function()
-	local targets = {"BAC", "Anti", "Check", "Detection", "Security", "Kick", "Adonnis", "Sentinel"}
-	for _, v in pairs(game:GetDescendants()) do
+local AC_WORDS = {
+	"bac", "anti", "check", "detect", "security", "kick", "adonis", "adonnis",
+	"sentinel", "ban", "report", "flag", "exploit", "cheat", "validate", "verify",
+	"hitbox", "sizecheck", "integrity", "guard", "watchdog",
+}
+
+local bypassOn = true
+local blockedCount = 0
+
+local function matchesAC(name)
+	name = tostring(name):lower()
+	for _, w in ipairs(AC_WORDS) do
+		if name:find(w, 1, true) then return true end
+	end
+	return false
+end
+
+-- disable / destroy detection scripts
+local function purgeScripts()
+	local removed = 0
+	for _, v in ipairs(game:GetDescendants()) do
 		pcall(function()
 			if v:IsA("LocalScript") or v:IsA("ModuleScript") then
-				local name = v.Name:lower()
-				for _, word in pairs(targets) do
-					if name:find(word:lower()) or v.Parent.Name:lower():find(word:lower()) then
-						v.Disabled = true
-						v:Destroy()
-					end
+				if matchesAC(v.Name) or matchesAC(v.Parent and v.Parent.Name or "") then
+					v.Disabled = true
+					v:Destroy()
+					removed = removed + 1
 				end
 			end
 		end)
 	end
+	return removed
+end
+pcall(purgeScripts)
+
+-- keep purging newly streamed-in detection scripts
+game.DescendantAdded:Connect(function(v)
+	if not bypassOn then return end
+	if v:IsA("LocalScript") or v:IsA("ModuleScript") then
+		task.defer(function()
+			pcall(function()
+				if matchesAC(v.Name) or matchesAC(v.Parent and v.Parent.Name or "") then
+					v.Disabled = true
+					v:Destroy()
+					blockedCount = blockedCount + 1
+				end
+			end)
+		end)
+	end
 end)
+
+-- block client-side Kick() and anticheat remote traffic
+local namecallHooked = false
+pcall(function()
+	if not (hookmetamethod and getnamecallmethod and checkcaller) then return end
+	local oldNamecall
+	oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+		if bypassOn and not checkcaller() then
+			local method = getnamecallmethod()
+
+			if method == "Kick" then
+				blockedCount = blockedCount + 1
+				return nil
+			end
+
+			if method == "FireServer" or method == "InvokeServer" then
+				if matchesAC(self.Name) or matchesAC(self.Parent and self.Parent.Name or "") then
+					blockedCount = blockedCount + 1
+					return nil
+				end
+			end
+		end
+		return oldNamecall(self, ...)
+	end)
+	namecallHooked = true
+end)
+
+-- kill anticheat listeners already connected on the client
+local function severACConnections()
+	if not getconnections then return 0 end
+	local n = 0
+	for _, obj in ipairs(game:GetDescendants()) do
+		pcall(function()
+			if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and matchesAC(obj.Name) then
+				for _, conn in ipairs(getconnections(obj.OnClientEvent)) do
+					pcall(function()
+						conn:Disable()
+						n = n + 1
+					end)
+				end
+			end
+		end)
+	end
+	pcall(function()
+		for _, conn in ipairs(getconnections(lp.Idled)) do
+			conn:Disable()
+		end
+	end)
+	return n
+end
+pcall(severACConnections)
 
 local cachedRemotes = {}
 local function updateRemoteCache()
@@ -489,10 +575,13 @@ local function applyHitbox(hrp)
 			material = hrp.Material,
 		}
 	end
-	local s = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+	local size = hitboxSafe and math.min(hitboxSize, 10) or hitboxSize
+	local s = Vector3.new(size, size, size)
 	if hrp.Size ~= s then hrp.Size = s end
-	hrp.Massless = true
-	hrp.CanCollide = false
+	if not hitboxSafe then
+		hrp.Massless = true
+		hrp.CanCollide = false
+	end
 	if hitboxInvis then
 		hrp.Transparency = 1
 	else
@@ -704,7 +793,41 @@ toggle(combat, "enable hitbox", false, function(v)
 	end
 end)
 toggle(combat, "hitbox see-thru", false, function(v) hitboxInvis = v end)
+toggle(combat, "safe mode (anti-kick)", true, function(v)
+	hitboxSafe = v
+	for hrp in pairs(originalSizes) do restoreHitbox(hrp) end
+end)
 slider(combat, "hitbox size", 1, 30, 5, 1, function(v) hitboxSize = v end)
+
+header(combat, "anticheat")
+local acStatus = txt(combat, "", 12, col.dim)
+acStatus.Size = UDim2.new(1, 0, 0, 32)
+local function refreshAcStatus()
+	acStatus.Text = (bypassOn and "bypass: on" or "bypass: off")
+		.. (namecallHooked and " | kick hook active" or " | kick hook unsupported")
+		.. "\nblocked: " .. blockedCount
+end
+refreshAcStatus()
+toggle(combat, "anticheat bypass", true, function(v)
+	bypassOn = v
+	refreshAcStatus()
+	notify(v and "bypass on" or "bypass off", v and col.good or col.accent)
+end)
+button(combat, "rescan / purge detections", function()
+	local ok, removed = pcall(purgeScripts)
+	removed = (ok and removed) or 0
+	local okConn, severed = pcall(severACConnections)
+	severed = (okConn and severed) or 0
+	blockedCount = blockedCount + removed + severed
+	refreshAcStatus()
+	notify("purged " .. removed .. " scripts, " .. severed .. " listeners", col.good)
+end)
+task.spawn(function()
+	while gui.Parent do
+		task.wait(1)
+		refreshAcStatus()
+	end
+end)
 
 local visuals = newTab("visuals")
 header(visuals, "esp")
@@ -773,6 +896,7 @@ button(settings, "unload", function()
 	walkSpeed = 16
 	for hrp in pairs(originalSizes) do restoreHitbox(hrp) end
 	if isInvisible then setInvisible(false) end
+	bypassOn = false
 	gui:Destroy()
 end)
 local info = txt(settings, "rightshift - hide menu\nctrl+i - invisibility", 12, col.dim)
